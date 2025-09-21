@@ -34,7 +34,7 @@ class WordMatcher:
                 self.llm_client = openai
                 logger.info("OpenAI LLM client initialized")
             else:
-                # Try HuggingFace local models (no API key needed)
+                # Try HuggingFace local models
                 try:
                     from transformers import pipeline
                     self.llm_client = pipeline("text-generation", model=HUGGINGFACE_MODEL)
