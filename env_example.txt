@@ -1,0 +1,10 @@
+# Copy this file to .env and fill in your API keys if needed
+
+# OpenAI API key for high-resource LLM mode (optional)
+OPENAI_API_KEY=your_openai_api_key_here
+
+# HuggingFace API key only needed for Inference API or private models
+# HUGGINGFACE_API_KEY=your_huggingface_api_key_here
+
+# Optional: Set USE_SELENIUM=false to use manual copy/paste mode
+# USE_SELENIUM=true
