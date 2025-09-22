@@ -163,9 +163,9 @@ Clues:
 
 Rules:
 - Must be a common English word
-- Must match ALL the given constraints exactly
+- Match the given constraints as closely as possible
 - Return only the word, nothing else
-- If multiple words are possible, choose the most common one
+- If multiple words are possible, choose the closest to the clues and then the most common one
 
 Word:
 """

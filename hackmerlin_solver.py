@@ -182,10 +182,10 @@ class HackMerlinSolver:
                 prompt = prompt_info['prompt']
                 strategy_name = prompt_info['strategy']
                 
-                print(f"\n📝 BACKUP PROMPT:")
+                print(f"\n BACKUP PROMPT:")
                 print(f"   {prompt}")
-                print("\n⏳ Please copy this prompt, paste it to Merlin, and wait for response...")
-                response = input("📥 MERLIN'S RESPONSE: ").strip()
+                print("\n Please copy this prompt, paste it to Merlin, and wait for response...")
+                response = input(" MERLIN'S RESPONSE: ").strip()
                 
                 if response:
                     # Parse response - use LLM if configured, otherwise use regex parser
@@ -234,10 +234,10 @@ class HackMerlinSolver:
                         reconstructed_word = self.prompt_generator.reconstruct_word(clues)
                     
                     if reconstructed_word and '?' not in reconstructed_word:
-                        print(f"\n🎯 UPDATED WORD GUESS:")
+                        print(f"\n UPDATED WORD GUESS:")
                         print(f"   {reconstructed_word}")
-                        print("\n⏳ Please submit this word to the game...")
-                        correct = input("✅ Was the guess correct? (y/n): ").strip().lower()
+                        print("\n Please submit this word to the game...")
+                        correct = input(" Was the guess correct? (y/n): ").strip().lower()
                         
                         if correct == 'y':
                             return True
@@ -261,10 +261,10 @@ class HackMerlinSolver:
                     if reconstructed_word and '?' not in reconstructed_word:
                         best_word = self.resource_manager.find_best_word(candidate_clues)
                         
-                        print(f"\n🎯 CANDIDATE LENGTH {candidate_length} WORD:")
-                        print(f"   {best_word}")
-                        print("\n⏳ Please submit this candidate word to the game...")
-                        correct = input("✅ Was the candidate correct? (y/n): ").strip().lower()
+                        print(f"\n CANDIDATE LENGTH {candidate_length} WORD:")
+                        print(f"  {best_word}")
+                        print("\n Please submit this candidate word to the game...")
+                        correct = input(" Was the candidate correct? (y/n): ").strip().lower()
                         
                         if correct == 'y':
                             return True
@@ -327,9 +327,9 @@ class HackMerlinSolver:
         """Try a specific candidate strategy with given length."""
         try:
             if self.game_automation.manual_mode:
-                print(f"\n📝 CANDIDATE PROMPT:")
+                print(f"\n CANDIDATE PROMPT:")
                 print(f"   {prompt}")
-                print("\n⏳ Please copy this prompt, paste it to Merlin, and wait for response...")
+                print("\n Please copy this prompt, paste it to Merlin, and wait for response...")
                 response = input("📥 MERLIN'S RESPONSE: ").strip()
                 
                 if response:
