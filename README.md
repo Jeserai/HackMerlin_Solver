@@ -114,35 +114,3 @@ HackMerlin_Solver/
 ├── env_example.txt           # API key template
 └── README.md                 # This file
 ```
-
-## Resource Levels
-
-### Low Resources (Default)
-- **Strategy**: Direct letter concatenation
-- **Dependencies**: Minimal (just selenium, requests)
-- **Speed**: Fastest
-- **Accuracy**: High (if all letters extracted correctly)
-
-### Medium Resources
-- **Strategy**: Word embeddings (Word2Vec)
-- **Dependencies**: gensim
-- **Speed**: Medium
-- **Accuracy**: Good (finds similar words)
-
-### High Resources
-- **Strategy**: LLM prediction + embeddings
-- **Dependencies**: openai (optional), transformers
-- **Speed**: Slower
-- **Accuracy**: Best (but may overthink simple cases)
-- **Note**: Uses local HuggingFace models (no API key needed)
-
-## Implementation Notes
-
-- **Placeholder Game Interface**: Currently has simulated responses - adapt to real game interface
-- **Systematic Approach**: Extracts ALL individual letters when possible
-- **Fallback Mechanisms**: Multiple strategies ensure solver always works
-- **Modular Design**: Easy to extend with new strategies or automation modes
-
-## License
-
-This project is for educational purposes. Please respect the game's terms of service.
