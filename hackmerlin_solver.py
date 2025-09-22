@@ -67,30 +67,34 @@ class HackMerlinSolver:
                     logger.error("No response from Merlin")
                     break
                 
-                # Parse response with context to extract clues
-                expected_count = None
-                clue_type = None
-                pl = prompt.lower()
-                if 'how many letters' in pl:
-                    clue_type = 'letter_count'
-                elif 'first' in pl:
-                    clue_type = 'first_letters'
-                    if 'four' in pl:
-                        expected_count = 4
-                    elif 'three' in pl:
-                        expected_count = 3
-                elif 'last' in pl:
-                    clue_type = 'last_letters'
-                    if 'two' in pl:
-                        expected_count = 2
-                    elif 'three' in pl:
-                        expected_count = 3
-                    elif 'four' in pl:
-                        expected_count = 4
+                # Parse response - use LLM if configured, otherwise use regex parser
+                if self.resource_manager.word_matcher.config['use_llm']:
+                    new_clues = self.resource_manager.word_matcher.parse_response_with_llm(response, prompt)
                 else:
-                    # Might be individual letters
+                    # Parse response with context to extract clues
+                    expected_count = None
                     clue_type = None
-                new_clues = self.response_parser.parse_response_with_expected_count(response, expected_count, clue_type)
+                    pl = prompt.lower()
+                    if 'how many letters' in pl:
+                        clue_type = 'letter_count'
+                    elif 'first' in pl:
+                        clue_type = 'first_letters'
+                        if 'four' in pl:
+                            expected_count = 4
+                        elif 'three' in pl:
+                            expected_count = 3
+                    elif 'last' in pl:
+                        clue_type = 'last_letters'
+                        if 'two' in pl:
+                            expected_count = 2
+                        elif 'three' in pl:
+                            expected_count = 3
+                        elif 'four' in pl:
+                            expected_count = 4
+                    else:
+                        # Might be individual letters
+                        clue_type = None
+                    new_clues = self.response_parser.parse_response_with_expected_count(response, expected_count, clue_type)
                 clues.update(new_clues)
                 
                 questions_asked += 1
@@ -107,7 +111,13 @@ class HackMerlinSolver:
                 pass
             
             # Try to find the best word based on clues
-            best_word = self.resource_manager.find_best_word(clues)
+            if self.resource_manager.word_matcher.config['use_llm']:
+                # Use LLM for word generation
+                best_word = self.resource_manager.word_matcher.generate_word_with_llm(clues)
+            else:
+                # Use configured strategy (concatenation/embeddings)
+                best_word = self.resource_manager.find_best_word(clues)
+            
             if not best_word:
                 return False
             
@@ -178,28 +188,32 @@ class HackMerlinSolver:
                 response = input("📥 MERLIN'S RESPONSE: ").strip()
                 
                 if response:
-                    # Parse response with expected count validation
-                    expected_count = None
-                    clue_type = None
-                    
-                    if "first" in prompt.lower():
-                        if "three" in prompt.lower():
-                            expected_count = 3
-                        clue_type = "first_letters"
-                    elif "last" in prompt.lower():
-                        clue_type = "last_letters"
-                        if "last two" in prompt.lower():
-                            expected_count = 2
-                        elif "last three" in prompt.lower():
-                            expected_count = 3
-                        elif "last four" in prompt.lower():
-                            expected_count = 4
-                        elif "last letter" in prompt.lower():
-                            expected_count = 1
-                    elif "letter" in prompt.lower() and any(ordinal in prompt.lower() for ordinal in ["4th", "5th", "6th", "7th", "8th"]):
-                        clue_type = "individual"
-                    
-                    new_clues = self.response_parser.parse_response_with_expected_count(response, expected_count, clue_type)
+                    # Parse response - use LLM if configured, otherwise use regex parser
+                    if self.resource_manager.word_matcher.config['use_llm']:
+                        new_clues = self.resource_manager.word_matcher.parse_response_with_llm(response, prompt)
+                    else:
+                        # Parse response with expected count validation
+                        expected_count = None
+                        clue_type = None
+                        
+                        if "first" in prompt.lower():
+                            if "three" in prompt.lower():
+                                expected_count = 3
+                            clue_type = "first_letters"
+                        elif "last" in prompt.lower():
+                            clue_type = "last_letters"
+                            if "last two" in prompt.lower():
+                                expected_count = 2
+                            elif "last three" in prompt.lower():
+                                expected_count = 3
+                            elif "last four" in prompt.lower():
+                                expected_count = 4
+                            elif "last letter" in prompt.lower():
+                                expected_count = 1
+                        elif "letter" in prompt.lower() and any(ordinal in prompt.lower() for ordinal in ["4th", "5th", "6th", "7th", "8th"]):
+                            clue_type = "individual"
+                        
+                        new_clues = self.response_parser.parse_response_with_expected_count(response, expected_count, clue_type)
                     
                     # Update original clues with new information (primary approach)
                     # Special merge behavior: if we asked for the last letter, update only the last character of last_letters
@@ -213,8 +227,12 @@ class HackMerlinSolver:
                     else:
                         clues.update(new_clues)
                     
-                    # Try to reconstruct word with updated clues
-                    reconstructed_word = self.prompt_generator.reconstruct_word(clues)
+                    # Try to generate word with updated clues
+                    if self.resource_manager.word_matcher.config['use_llm']:
+                        reconstructed_word = self.resource_manager.word_matcher.generate_word_with_llm(clues)
+                    else:
+                        reconstructed_word = self.prompt_generator.reconstruct_word(clues)
+                    
                     if reconstructed_word and '?' not in reconstructed_word:
                         print(f"\n🎯 UPDATED WORD GUESS:")
                         print(f"   {reconstructed_word}")
