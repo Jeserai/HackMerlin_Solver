@@ -197,12 +197,8 @@ class GameAutomation:
                 # TODO: Extract level from game interface
                 return 1
             else:
-                # In manual mode, ask user
-                try:
-                    level = input(f"\n🎮 What level are you on? (default: 1): ").strip()
-                    return int(level) if level else 1
-                except ValueError:
-                    return 1
+                # In manual mode, always return 1 (no level detection)
+                return 1
         except Exception as e:
             logger.error(f"Error getting level: {e}")
             return 1

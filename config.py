@@ -36,7 +36,7 @@ OPENAI_MODEL = "gpt-3.5-turbo"
 HUGGINGFACE_MODEL = "Qwen/Qwen2-0.5B-Instruct"  # Lightweight local model
 
 # Automation settings
-USE_SELENIUM = True  # Set to False for manual copy/paste mode
+USE_SELENIUM = False  # Set to False for manual copy/paste mode
 HEADLESS_MODE = True
 
 # Game settings

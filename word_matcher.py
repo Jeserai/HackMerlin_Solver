@@ -3,7 +3,7 @@ Word matcher for HackMerlin game - direct concatenation or LLM-based.
 """
 import logging
 from typing import Optional, Dict, Any
-from config import RESOURCE_LEVELS, OPENAI_API_KEY, HUGGINGFACE_API_KEY, OPENAI_MODEL, HUGGINGFACE_MODEL
+from config import RESOURCE_LEVELS, OPENAI_API_KEY, OPENAI_MODEL, HUGGINGFACE_MODEL
 
 logger = logging.getLogger(__name__)
 
@@ -93,11 +93,15 @@ class WordMatcher:
                 if i < letter_count:
                     word[i] = letter
             
-            # Fill in last letters
+            # Fill in last letters (lower priority - won't override first letters)
             for i, letter in enumerate(last_letters):
                 pos = letter_count - len(last_letters) + i
-                if pos >= 0 and pos < letter_count:
-                    word[pos] = letter
+                if 0 <= pos < letter_count:
+                    if word[pos] == '?':
+                        word[pos] = letter
+                    else:
+                        # Conflict detected - first letter takes priority
+                        logger.info(f"Word matcher conflict at position {pos+1}: first_letters='{word[pos]}' vs last_letters='{letter}' - prioritizing first_letters")
             
             # Fill in individual letters
             for key, letter in clues.items():
