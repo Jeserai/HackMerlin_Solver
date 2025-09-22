@@ -225,6 +225,7 @@ class HackMerlinSolver:
                             return True
                         else:
                             # Continue with next backup prompt
+                            continue
                     else:
                         pass
             
@@ -251,6 +252,7 @@ class HackMerlinSolver:
                             return True
                         else:
                             # Continue with next candidate length
+                            continue
             
             return False
             
@@ -377,7 +379,6 @@ def main():
         solver.run()
     except KeyboardInterrupt:
         print("Interrupted")
-
 
 if __name__ == "__main__":
     main()

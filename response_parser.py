@@ -67,7 +67,6 @@ class ResponseParser:
                         if not expected_count or len(cleaned) <= expected_count:
                             first_letters = cleaned.lower()
                 if first_letters:
-                    if expected_count and len(first_letters) != expected_count:
                     clues['first_letters'] = first_letters
             
             # Parse last letters with expected count
@@ -80,7 +79,6 @@ class ResponseParser:
                         if not expected_count or len(cleaned) <= expected_count:
                             last_letters = cleaned.lower()
                 if last_letters:
-                    if expected_count and len(last_letters) != expected_count:
                     clues['last_letters'] = last_letters
             
             # Parse individual letter positions only if not constrained to other types
