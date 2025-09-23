@@ -8,10 +8,10 @@ from game_automation import GameAutomation
 from resource_manager import ResourceManager
 from prompt_generator import PromptGenerator
 from response_parser import ResponseParser
-from config import MAX_QUESTIONS_PER_LEVEL, MAX_RETRIES_PER_LEVEL, RESOURCE_LEVELS
+from config import MAX_QUESTIONS_PER_LEVEL, MAX_RETRIES_PER_LEVEL, RESOURCE_LEVELS, LOG_LEVEL
 
-# Minimal logging for manual mode
-logging.basicConfig(level=logging.WARNING, format='%(levelname)s: %(message)s')
+# Configure logging to show all messages
+logging.basicConfig(level=getattr(logging, LOG_LEVEL), format='%(levelname)s: %(message)s')
 logger = logging.getLogger(__name__)
 
 
@@ -25,6 +25,16 @@ class HackMerlinSolver:
         self.response_parser = ResponseParser()
         self.max_questions_per_level = MAX_QUESTIONS_PER_LEVEL
         self.max_retries_per_level = MAX_RETRIES_PER_LEVEL
+    
+    def _filter_word(self, word: str) -> str:
+        """Filter out non-Latin characters from word."""
+        if not word:
+            return word
+        # Keep only ASCII alphabetic characters
+        filtered = ''.join(c for c in word if c.isascii() and c.isalpha())
+        if filtered != word:
+            logger.info(f"🔧 Filtered word: '{word}' → '{filtered}'")
+        return filtered
         
     
     def run(self) -> None:
@@ -38,6 +48,21 @@ class HackMerlinSolver:
             success = self._solve_level()
             self.prompt_generator.reset()
             
+            if success:
+                print("🎉 Level completed successfully!")
+                logger.info("🎉 Level completed successfully!")
+                
+                # Check if browser is still alive
+                if self.game_automation.use_playwright and self.game_automation.page:
+                    print("🔄 Browser still alive - ready for next level!")
+                    logger.info("🔄 Browser still alive - ready for next level!")
+                else:
+                    print("💡 To play another level, run the script again")
+                    logger.info("💡 To play another level, run the script again")
+            else:
+                print("❌ Level failed")
+                logger.info("❌ Level failed")
+            
         except Exception as e:
             logger.error(f"Error in main game loop: {e}")
             raise
@@ -50,6 +75,55 @@ class HackMerlinSolver:
             clues = {}
             original_clues = {}  # Store original clues before any modifications
             questions_asked = 0
+            
+            # For the first level, try the simple "what is the password" approach first
+            current_level = self.game_automation.get_current_level()
+            if current_level == 1:
+                logger.info("🎯 Level 1: Trying simple 'what is the password' approach")
+                response = self.game_automation.ask_merlin("What is the password?")
+                if response and response.lower() not in ['i cannot tell you', 'cannot say', 'i cannot provide that information']:
+                    logger.info(f"🔑 Direct password response: {response}")
+                    # Try to extract the password from the response
+                    import re
+                    
+                    # Pattern 1: "the password is X" or "password is none other than X"
+                    password_match = re.search(r'the password is (?:none other than )?["\']?([A-Z]+)["\']?', response, re.IGNORECASE)
+                    if not password_match:
+                        # Pattern 2: "password: X" or "password is X"
+                        password_match = re.search(r'password:?\s*["\']?([A-Z]+)["\']?', response, re.IGNORECASE)
+                    if not password_match:
+                        # Pattern 3: Words in quotes (prioritize uppercase words)
+                        password_match = re.search(r'"([A-Z]+)"', response)
+                    if not password_match:
+                        # Pattern 4: Single standalone uppercase word (4+ letters)
+                        words = response.split()
+                        for word in words:
+                            if len(word) >= 4 and word.isalpha() and word.isupper():
+                                password_match = re.search(r'\b' + re.escape(word) + r'\b', response)
+                                if password_match:
+                                    break
+                    
+                    if password_match:
+                        # Extract the password based on which pattern matched
+                        if password_match.groups():  # Pattern with groups (Pattern 1 & 2)
+                            password = password_match.group(1)
+                        else:  # Pattern without groups (Pattern 3 & 4)
+                            password = password_match.group(0)
+                        
+                        print(f"🔍 Raw extracted password: '{password}'")
+                        logger.info(f"🔍 Raw extracted password: '{password}'")
+                        
+                        password = self._filter_word(password)
+                        print(f"🎯 Extracted password (filtered): {password}")
+                        logger.info(f"🎯 Extracted password (filtered): {password}")
+                        success = self.game_automation.submit_word_guess(password)
+                        if success:
+                            logger.info("✅ Level 1 solved with direct password approach!")
+                            return True
+                        else:
+                            logger.info("❌ Direct password approach failed, continuing with systematic strategy")
+                    else:
+                        logger.info("❌ Could not extract password from response, continuing with systematic strategy")
             
             # Ask Merlin questions to gather clues systematically
             while questions_asked < self.max_questions_per_level:

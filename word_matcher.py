@@ -25,6 +25,16 @@ class WordMatcher:
         if self.config['use_embeddings']:
             self._setup_embeddings()
     
+    def _filter_word(self, word: str) -> str:
+        """Filter out non-Latin characters from word."""
+        if not word:
+            return word
+        # Keep only ASCII alphabetic characters
+        filtered = ''.join(c for c in word if c.isascii() and c.isalpha())
+        if filtered != word:
+            logger.info(f"🔧 Filtered word: '{word}' → '{filtered}'")
+        return filtered
+    
     def _setup_llm(self) -> None:
         """Setup LLM client."""
         try:
@@ -63,17 +73,21 @@ class WordMatcher:
             strategy = self.config['strategy']
             
             if strategy == 'concatenation':
-                return self._direct_concatenation(clues)
+                word = self._direct_concatenation(clues)
             elif strategy == 'llm':
-                return self._llm_prediction(clues)
+                word = self._llm_prediction(clues)
             elif strategy == 'embeddings':
-                return self._embedding_search(clues)
+                word = self._embedding_search(clues)
             else:
-                return self._direct_concatenation(clues)
+                word = self._direct_concatenation(clues)
+            
+            # Filter the result
+            return self._filter_word(word) if word else None
                 
         except Exception as e:
             logger.error(f"Error finding word: {e}")
-            return self._direct_concatenation(clues)
+            word = self._direct_concatenation(clues)
+            return self._filter_word(word) if word else None
     
     def parse_response_with_llm(self, response: str, prompt: str) -> Dict[str, Any]:
         """Parse Merlin's response using LLM."""
@@ -188,9 +202,11 @@ Word:
             import re
             word_match = re.search(r'\b[a-zA-Z]+\b', result)
             if word_match:
-                return word_match.group().lower()
+                word = word_match.group().lower()
+                return self._filter_word(word)
             
-            return result.strip().lower()
+            word = result.strip().lower()
+            return self._filter_word(word)
                 
         except Exception as e:
             logger.error(f"Error generating word with LLM: {e}")
