@@ -128,7 +128,9 @@ Return only the JSON, no other text:
             else:
                 # HuggingFace pipeline
                 result = self.llm_client(parsing_prompt, max_new_tokens=100, temperature=0.1, truncation=True)[0]['generated_text']
+                logger.info(f"🔍 Raw LLM output: {repr(result)}")
                 result = result.replace(parsing_prompt, "").strip()
+                logger.info(f"🔍 Cleaned LLM output: {repr(result)}")
             
             # Parse JSON result
             import json
