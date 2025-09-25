@@ -122,12 +122,12 @@ Return only the JSON, no other text:
                     model=OPENAI_MODEL,
                     messages=[{"role": "user", "content": parsing_prompt}],
                     max_tokens=100,
-                    temperature=0
+                    temperature=0.1
                 )
                 result = response_obj.choices[0].message.content.strip()
             else:
                 # HuggingFace pipeline
-                result = self.llm_client(parsing_prompt, max_length=100, temperature=0)[0]['generated_text']
+                result = self.llm_client(parsing_prompt, max_length=100, temperature=0.1, truncation=True)[0]['generated_text']
                 result = result.replace(parsing_prompt, "").strip()
             
             # Parse JSON result
@@ -195,7 +195,7 @@ Word:
                 result = response_obj.choices[0].message.content.strip()
             else:
                 # HuggingFace pipeline
-                result = self.llm_client(generation_prompt, max_length=20, temperature=0.1)[0]['generated_text']
+                result = self.llm_client(generation_prompt, max_length=20, temperature=0.1, truncation=True)[0]['generated_text']
                 result = result.replace(generation_prompt, "").strip()
             
             # Clean up result - just the word
