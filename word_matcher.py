@@ -165,17 +165,11 @@ Return only the JSON, no other text:
             
             context = "\n".join(context_parts)
             
-            generation_prompt = f"""You are solving a word puzzle game. Based on these questions and answers from Merlin, what is the secret word?
+            generation_prompt = f"""Based on these clues, what is the secret word?
 
 {context}
 
-Rules:
-- The word is a common English word
-- Merlin's answers contain clues about the word's length, letters, or structure
-- Return only the word, nothing else
-- If uncertain, make your best guess based on the clues
-
-Secret word:"""
+The secret word is:"""
             
             if hasattr(self.llm_client, 'ChatCompletion'):
                 # OpenAI API
