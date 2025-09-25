@@ -521,8 +521,15 @@ class HackMerlinSolver:
 
 
 def main():
-    """Main entry point (manual mode, concise)."""
-    solver = HackMerlinSolver(resource_level='low')
+    """Main entry point with command line argument support."""
+    import argparse
+    
+    parser = argparse.ArgumentParser(description='HackMerlin Solver')
+    parser.add_argument('--resource-level', choices=['low', 'medium', 'high'], 
+                       default='low', help='Resource level for AI capabilities')
+    args = parser.parse_args()
+    
+    solver = HackMerlinSolver(resource_level=args.resource_level)
     try:
         solver.run()
     except KeyboardInterrupt:
