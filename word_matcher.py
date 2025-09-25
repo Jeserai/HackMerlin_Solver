@@ -127,7 +127,7 @@ Return only the JSON, no other text:
                 result = response_obj.choices[0].message.content.strip()
             else:
                 # HuggingFace pipeline
-                result = self.llm_client(parsing_prompt, max_length=100, temperature=0.1, truncation=True)[0]['generated_text']
+                result = self.llm_client(parsing_prompt, max_new_tokens=100, temperature=0.1, truncation=True)[0]['generated_text']
                 result = result.replace(parsing_prompt, "").strip()
             
             # Parse JSON result
@@ -195,7 +195,7 @@ Word:
                 result = response_obj.choices[0].message.content.strip()
             else:
                 # HuggingFace pipeline
-                result = self.llm_client(generation_prompt, max_length=20, temperature=0.1, truncation=True)[0]['generated_text']
+                result = self.llm_client(generation_prompt, max_new_tokens=20, temperature=0.1, truncation=True)[0]['generated_text']
                 result = result.replace(generation_prompt, "").strip()
             
             # Clean up result - just the word
@@ -292,7 +292,7 @@ Word:
                 word = response.choices[0].message.content.strip().lower()
             else:
                 # HuggingFace pipeline
-                response = self.llm_client(prompt, max_length=50, num_return_sequences=1)
+                response = self.llm_client(prompt, max_new_tokens=50, num_return_sequences=1)
                 word = response[0]['generated_text'].split()[-1].lower()
             
             # Validate word matches clues
