@@ -22,8 +22,7 @@ class WordMatcher:
             self._setup_llm()
         
         # Initialize embeddings if configured
-        if self.config['use_embeddings']:
-            self._setup_embeddings()
+        # Don't setup embeddings here - will be done lazily when needed
     
     def _filter_word(self, word: str) -> str:
         """Filter out non-Latin characters from word."""
@@ -58,7 +57,10 @@ class WordMatcher:
             self.config['use_llm'] = False
     
     def _setup_embeddings(self) -> None:
-        """Setup embeddings model."""
+        """Setup embeddings model (lazy loading)."""
+        if hasattr(self, 'embeddings_model') and self.embeddings_model is not None:
+            return  # Already loaded
+            
         try:
             import gensim.downloader as api
             self.embeddings_model = api.load("word2vec-google-news-300")
@@ -66,6 +68,7 @@ class WordMatcher:
         except Exception as e:
             logger.warning(f"Failed to load embeddings model: {e}")
             self.config['use_embeddings'] = False
+            self.embeddings_model = None
     
     def find_best_match(self, clues: Dict[str, Any]) -> Optional[str]:
         """Find the best word based on strategy and available clues."""
@@ -311,6 +314,10 @@ Word:
     def _embedding_search(self, clues: Dict[str, Any]) -> Optional[str]:
         """Use embeddings to find similar words."""
         try:
+            # Lazy load embeddings if needed
+            if self.config['use_embeddings'] and not self.embeddings_model:
+                self._setup_embeddings()
+            
             if not self.embeddings_model:
                 return self._direct_concatenation(clues)
             
