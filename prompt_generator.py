@@ -37,12 +37,12 @@ class PromptGenerator:
         # Step 2: Get first few letters (start with 4, fallback to 3)
         first_letters = clues.get('first_letters', '')
         if not first_letters:
-            return "What are the first four letters?"
+            return  "first four letters?"
         
         # Step 3: Get last few letters  
         last_letters = clues.get('last_letters', '')
         if not last_letters:
-            return "What are the last three letters?"
+            return "last three letters?"
         
         # Step 4: Get individual letters for middle positions
         # We have first a letters and last b letters, need letters at positions a+1 to n-b-1
@@ -62,7 +62,7 @@ class PromptGenerator:
         if missing_positions:
             # Ask for the first missing letter
             pos = missing_positions[0]
-            return f"What is the {self._ordinal(pos)} letter?"
+            return f"the {self._ordinal(pos)} letter?"
         
         # If we have all letters, return None to indicate we're done
         return None

@@ -45,6 +45,45 @@ class ResponseParser:
             logger.error(f"Error parsing response: {e}")
             return {}
     
+    def parse_response_with_context(self, response: str, prompt: str) -> Dict[str, Any]:
+        """Parse response with context from the prompt to avoid wrong extractions."""
+        try:
+            clues = {}
+            prompt_lower = prompt.lower()
+            
+            # Parse letter count if asked
+            if 'how many letters' in prompt_lower:
+                letter_count = self._extract_letter_count(response)
+                if letter_count:
+                    clues['letter_count'] = letter_count
+            
+            # Parse first letters if asked
+            elif 'first' in prompt_lower:
+                first_letters = self._extract_first_letters(response)
+                if first_letters:
+                    clues['first_letters'] = first_letters
+            
+            # Parse last letters if asked
+            elif 'last' in prompt_lower:
+                last_letters = self._extract_last_letters(response)
+                if last_letters:
+                    clues['last_letters'] = last_letters
+            
+            # Parse individual letters if asked
+            elif any(ordinal in prompt_lower for ordinal in ['1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th']):
+                individual_letters = self._extract_individual_letters(response)
+                clues.update(individual_letters)
+            
+            # Fallback: parse all if context is unclear
+            else:
+                clues = self.parse_response(response)
+            
+            return clues
+            
+        except Exception as e:
+            logger.error(f"Error parsing response with context: {e}")
+            return {}
+    
     def parse_response_with_expected_count(self, response: str, expected_count: int = None, clue_type: str = None) -> Dict[str, Any]:
         """Parse response with expected count validation for partial matching."""
         try:
@@ -93,47 +132,45 @@ class ResponseParser:
             return {}
     
     def _extract_letter_count(self, response: str) -> Optional[int]:
-        """Extract letter count from response."""
+        """Extract letter count from response by searching for numbers 1-10 or words one-ten."""
         try:
-            # First try to extract digit patterns (avoid matching "first X letters" or "last X letters")
-            patterns = [
-                r'(\d+)\s*letters?[,\s]',  # "5 letters," or "5 letters "
-                r'has\s+(\d+)\s*letters?',
-                r'is\s+(\d+)\s*letters?',
-                r'word\s+is\s+(\d+)\s*letters?',
-                r'(\d+)\s*letters?$',  # "5 letters" at end of sentence
-            ]
+            response_lower = response.lower()
             
-            for pattern in patterns:
-                match = re.search(pattern, response.lower())
-                if match:
-                    return int(match.group(1))
-            
-            # Then try word-to-number conversion for patterns like "seven letters"
+            # Word to number mapping
             word_to_number = {
-                'zero': 0, 'one': 1, 'two': 2, 'three': 3, 'four': 4,
-                'five': 5, 'six': 6, 'seven': 7, 'eight': 8, 'nine': 9,
-                'ten': 10, 'eleven': 11, 'twelve': 12
+                'one': 1, 'two': 2, 'three': 3, 'four': 4, 'five': 5,
+                'six': 6, 'seven': 7, 'eight': 8, 'nine': 9, 'ten': 10
             }
             
-            response_lower = response.lower()
+            # Prioritize word numbers over digits to avoid false matches
+            # Check for word numbers one-ten first, but only if they appear with "letter" or at start
             for word, number in word_to_number.items():
-                # Only match if it's not part of "first X letters" or "last X letters"
-                if (f'{word} letters' in response_lower and 
-                    f'first {word} letters' not in response_lower and
-                    f'last {word} letters' not in response_lower):
-                    return number
+                if word in response_lower:
+                    # Check if this word appears near "letter" or at the start of response
+                    words = response_lower.split()
+                    try:
+                        word_index = words.index(word)
+                        nearby_words = words[max(0, word_index-2):word_index+3]
+                        if (response_lower.startswith(word) or 
+                            any('letter' in w for w in nearby_words)):
+                            return number
+                    except ValueError:
+                        # Word not found in split words (might be part of another word)
+                        continue
             
-            # Finally, accept bare number words or digits as the entire response
-            # e.g., "Six" or "6"
-            bare_digit = re.fullmatch(r'\s*(\d+)\s*', response_lower)
-            if bare_digit:
-                try:
-                    return int(bare_digit.group(1))
-                except ValueError:
-                    pass
-            if response_lower.strip() in word_to_number:
-                return word_to_number[response_lower.strip()]
+            # Then check for digit numbers 1-10, but only if they appear with "letter" or are standalone
+            # This avoids matching random digits in the response
+            for i in range(1, 11):
+                if str(i) in response_lower:
+                    # Check if this digit appears near "letter" to confirm it's about letter count
+                    words = response_lower.split()
+                    for j, word in enumerate(words):
+                        if str(i) in word:
+                            # Check if "letter" appears nearby (within 3 words) OR if it's a standalone digit
+                            nearby_words = words[max(0, j-3):j+4]
+                            if (any('letter' in w for w in nearby_words) or 
+                                word.strip() == str(i)):  # Standalone digit
+                                return i
             
             return None
             
@@ -149,8 +186,18 @@ class ResponseParser:
                 r'begins?\s+with\s+[\'"]([a-zA-Z]+)[\'"]',
                 r'first\s+(\d+)\s+letters?\s+are?\s+[\'"]([a-zA-Z]+)[\'"]',
                 r'first\s+letters?\s+are?\s+[\'"]([a-zA-Z]+)[\'"]',
+                # Handle "The first four letters of the password are C-I-R-C."
+                r'first\s+(?:\d+|\w+)\s+letters?\s+(?:of\s+the\s+password\s+)?are\s+(.+)',
+                r'first\s+letters?\s+(?:of\s+the\s+password\s+)?are\s+(.+)',
                 r'first\s+(?:\d+|\w+)\s+letters?\s+are\s+(.+)',
                 r'first\s+letters?\s+are\s+(.+)',
+                # Handle quoted words at start of response
+                r'^["\']([A-Za-z]+)["\']',
+                # Handle direct letter sequences like "JAGU" or "C-I-R-C"
+                r'^([A-Z]+(?:-[A-Z]+)*\.?)$',
+                r'^([A-Z]+)$',
+                # Handle dots between letters like "Z... E... P... H..."
+                r'^([A-Z](?:\.\.\.\s*[A-Z])*\.*)$',
             ]
             
             for pattern in patterns:
@@ -163,7 +210,11 @@ class ResponseParser:
                     # Clean up the letters (remove ", and" pattern and all non-letter characters)
                     letters = letters_group.replace(', and', '').replace(' and ', '')
                     letters = re.sub(r'[^a-zA-Z]', '', letters)
-                    return letters.lower()
+                    
+                    # Only return if we have actual letters
+                    if letters:
+                        logger.info(f"📝 Extracted first letters: '{letters}' from response: '{response}'")
+                        return letters.lower()
             
             return None
             
@@ -179,9 +230,14 @@ class ResponseParser:
                 r'last\s+(\d+)\s+letters?\s+are?\s+[\'"]([a-zA-Z]+)[\'"]',
                 r'last\s+letters?\s+are?\s+[\'"]([a-zA-Z]+)[\'"]',
                 r'finishes?\s+with\s+[\'"]([a-zA-Z]+)[\'"]',
-                # Handle "The last three letters of the password are RON."
+                # Handle "The password ends with T." or "The password ends with LEE."
+                r'(?:password\s+)?ends?\s+with\s+[\\"\']?([A-Z]+)[\\"\']?\.?',
+                r'(?:password\s+)?ends?\s+with\s+([A-Z]+)\.?',
                 r'last\s+(?:\d+|\w+)\s+letters?\s+(?:of\s+the\s+password\s+)?are\s+(.+)',
                 r'last\s+letters?\s+(?:of\s+the\s+password\s+)?are\s+(.+)',
+                # Handle direct letter lists like "A, R, and R." or "JAGU"
+                r'^([A-Z]+(?:,\s*[A-Z]+)*\.?)$',
+                r'^([A-Z]+(?:,\s*[A-Z]+)*)$',
             ]
             
             for pattern in patterns:
@@ -194,7 +250,11 @@ class ResponseParser:
                     # Clean up the letters (remove ", and" pattern and all non-letter characters)
                     letters = letters_group.replace(', and', '').replace(' and ', '')
                     letters = re.sub(r'[^a-zA-Z]', '', letters)
-                    return letters.lower()
+                    
+                    # Only return if we have actual letters
+                    if letters:
+                        logger.info(f"📝 Extracted last letters: '{letters}' from response: '{response}'")
+                        return letters.lower()
             
             return None
             

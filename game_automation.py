@@ -20,6 +20,7 @@ class GameAutomation:
         self.browser = None
         self.context = None
         self.level_before_submit = None
+        self.current_level = 0  # Track current level (starts at 0)
         
         if self.manual_mode:
             logger.info("Running in manual mode - copy/paste interactions")
@@ -34,26 +35,33 @@ class GameAutomation:
         try:
             from playwright.sync_api import sync_playwright
             
-            playwright = sync_playwright().start()
+            self.playwright = sync_playwright().start()
             
-            # Launch browser
-            self.browser = playwright.chromium.launch(
+            # Launch browser with more stable settings
+            self.browser = self.playwright.chromium.launch(
                 headless=HEADLESS_MODE,
                 args=[
                     '--no-sandbox',
                     '--disable-dev-shm-usage',
                     '--disable-gpu',
-                    '--disable-extensions'
+                    '--disable-extensions',
+                    '--disable-web-security',
+                    '--disable-features=VizDisplayCompositor'
                 ]
             )
             
-            # Create context
+            # Create context with more stable settings
             self.context = self.browser.new_context(
-                viewport={'width': 1280, 'height': 720}
+                viewport={'width': 1280, 'height': 720},
+                ignore_https_errors=True
             )
             
             # Create page
             self.page = self.context.new_page()
+            
+            # Set longer timeouts
+            self.page.set_default_timeout(30000)
+            self.page.set_default_navigation_timeout(30000)
             
             logger.info("🚀 Playwright browser initialized successfully")
         except Exception as e:
@@ -67,12 +75,32 @@ class GameAutomation:
         if self.use_playwright:
             try:
                 logger.info("🌐 Navigating to HackMerlin game...")
-                self.page.goto(GAME_URL)
-                self.page.wait_for_load_state('networkidle')
+                
+                # Try with a shorter timeout first
+                self.page.goto(GAME_URL, wait_until='domcontentloaded', timeout=15000)
+                logger.info("✅ Page loaded, waiting for elements...")
+                
+                # Wait for key elements to be present with shorter timeout
+                try:
+                    self.page.wait_for_selector("textarea.m_8fb7ebe7.mantine-Input-input.mantine-Textarea-input", timeout=8000)
+                    logger.info("✅ Game elements found")
+                except Exception as selector_error:
+                    logger.warning(f"Could not find textarea selector: {selector_error}")
+                    # Try alternative selectors
+                    try:
+                        self.page.wait_for_selector("textarea", timeout=5000)
+                        logger.info("✅ Found textarea with generic selector")
+                    except Exception as generic_error:
+                        logger.warning(f"Could not find any textarea: {generic_error}")
+                        # Continue anyway, maybe the page is still loading
+                
                 logger.info(f"🌐 Successfully navigated to: {self.page.url}")
+                logger.info("🎮 Game interface loaded and ready")
             except Exception as e:
                 logger.error(f"Failed to navigate to game: {e}")
-                raise
+                logger.info("Falling back to manual mode")
+                self.use_playwright = False
+                self.manual_mode = True
         else:
             print(f"\n{'='*50}")
             print("MANUAL MODE ACTIVATED")
@@ -114,23 +142,41 @@ class GameAutomation:
             logger.info(f"🤖 Asking Merlin: '{prompt}'")
             
             # Find and clear the textarea input field
+            logger.info("🔍 Looking for textarea input field...")
             input_field = self.page.locator("textarea.m_8fb7ebe7.mantine-Input-input.mantine-Textarea-input")
+            
+            # Wait for input field to be visible
+            input_field.wait_for(state="visible", timeout=5000)
+            logger.info("✅ Input field found and visible")
+            
+            # Clear and fill the input
             input_field.clear()
             input_field.fill(prompt)
+            logger.info("✅ Prompt entered into input field")
             
-            # Find and click the Ask button
-            ask_button = self.page.locator("button[type='submit']")
+            # Find and click the Ask button (more specific selector)
+            logger.info("🔍 Looking for Ask button...")
+            ask_button = self.page.locator("button[type='submit']").first
+            ask_button.wait_for(state="visible", timeout=5000)
+            logger.info("✅ Ask button found and visible")
+            
             ask_button.click()
+            logger.info("✅ Ask button clicked")
             
-            # Wait for response
-            self.page.wait_for_timeout(2000)
+            # Wait for response to appear
+            logger.info("⏳ Waiting for Merlin's response...")
+            self.page.wait_for_timeout(3000)
             
             # Extract response from blockquote
+            logger.info("🔍 Looking for response blockquote...")
             blockquote = self.page.locator("blockquote.m_ddec01c0.mantine-Blockquote-root")
             response_element = blockquote.locator("p.mantine-focus-auto.m_b6d8b162.mantine-Text-root")
+            
+            # Wait for response element to be visible
+            response_element.wait_for(state="visible", timeout=10000)
             response = response_element.text_content().strip()
             
-            logger.info(f"Merlin responds: {response}")
+            logger.info(f"✅ Merlin responds: {response}")
             return response
             
         except Exception as e:
@@ -202,32 +248,51 @@ class GameAutomation:
                 logger.info("✅ Continue button clicked - word guess successful")
                 return True
             
-            # If no Continue button, check level change or Instruction screen
+            # If no Continue button, check level progression
             try:
-                current_level = self.get_current_level()
-                
-                # Check if we're on Instruction screen (indicates success)
+                # Check if we're on Instruction screen (indicates failure if no Continue button)
                 try:
-                    level_element = self.page.locator("h1.m_8a5d1357.mantine-Title-root")
+                    level_element = self.page.locator("h1.m_8a5d1357.mantine-Title-root").first
                     level_text = level_element.text_content().strip()
                     if "Instruction" in level_text:
-                        logger.info(f"✅ Instruction screen detected - word guess successful")
-                        return True
+                        logger.info(f"❌ Instruction screen detected without Continue button - word guess failed")
+                        return False
                 except:
                     pass
                 
-                # Check level change
-                success = self.level_before_submit and current_level > self.level_before_submit
-                
-                if success:
-                    logger.info(f"✅ Level changed: {self.level_before_submit} → {current_level} - word guess successful")
-                    return True
-                else:
-                    logger.info("❌ Level did not change - word guess failed")
+                # Check level progression using the page title
+                try:
+                    level_element = self.page.locator("h1.m_8a5d1357.mantine-Title-root").first
+                    level_text = level_element.text_content().strip()
+                    
+                    if "Level" in level_text:
+                        try:
+                            page_level = int(level_text.split()[-1])
+                            expected_level = self.current_level + 1
+                            
+                            logger.info(f"🔍 Page shows Level {page_level}, expected Level {expected_level}")
+                            
+                            if page_level == expected_level:
+                                logger.info(f"✅ Level progressed from {self.current_level} to {page_level} - word guess successful")
+                                self.current_level = page_level
+                                return True
+                            else:
+                                logger.info(f"❌ Level did not progress as expected - word guess failed")
+                                return False
+                        except (ValueError, IndexError):
+                            logger.warning(f"Could not parse level from: {level_text}")
+                            return False
+                    else:
+                        logger.info(f"❌ No level information found - word guess failed")
+                        return False
+                        
+                except Exception as level_error:
+                    logger.error(f"Error checking level progression: {level_error}")
                     return False
+                    
             except Exception as e:
-                logger.error(f"Error checking level change: {e}")
-                return continue_clicked  # Return True if Continue was clicked
+                logger.error(f"Error in success detection: {e}")
+                return False
             
         except Exception as e:
             logger.error(f"Playwright submit failed: {e}")
@@ -276,6 +341,9 @@ class GameAutomation:
                             logger.info("🔄 Continue button found and visible, clicking it...")
                             button.click()
                             logger.info("🔄 Continue button clicked successfully")
+                            # Increment level counter when Continue button is clicked
+                            self.current_level += 1
+                            logger.info(f"🎯 Level advanced to: {self.current_level}")
                             self.page.wait_for_timeout(2000)
                             return True
                         else:
@@ -305,38 +373,24 @@ class GameAutomation:
         """Get the current level number."""
         if self.use_playwright:
             try:
-                # Find the level header
-                level_element = self.page.locator("h1.m_8a5d1357.mantine-Title-root")
-                level_text = level_element.text_content().strip()
-                
-                # Extract number from "Level X" text
-                if "Level" in level_text:
-                    try:
-                        level_num = int(level_text.split()[-1])
-                        logger.info(f"📊 Current level: {level_num}")
-                        return level_num
-                    except (ValueError, IndexError):
-                        logger.warning(f"Could not parse level from: {level_text}")
-                        return 1
-                elif "Instruction" in level_text:
-                    # Instruction screen appears after successful level completion
-                    logger.info(f"📊 Instruction screen detected: {level_text} (indicates success)")
-                    return self.level_before_submit + 1 if self.level_before_submit else 1
-                else:
-                    logger.warning(f"Unexpected level format: {level_text}")
-                    return 1
+                # Use our tracked level counter
+                logger.info(f"📊 Current tracked level: {self.current_level}")
+                return self.current_level
             except Exception as e:
                 logger.error(f"Error getting level: {e}")
-                return 1
+                return self.current_level
         else:
             # In manual mode, always return 1 (no level detection)
             return 1
     
     def close(self) -> None:
         """Close the session."""
-        if self.use_playwright and self.browser:
+        if self.use_playwright:
             try:
-                self.browser.close()
+                if self.browser:
+                    self.browser.close()
+                if hasattr(self, 'playwright') and self.playwright:
+                    self.playwright.stop()
                 logger.info("🚪 Playwright browser closed")
             except Exception as e:
                 logger.warning(f"Error closing browser: {e}")
