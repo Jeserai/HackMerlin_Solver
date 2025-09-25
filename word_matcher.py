@@ -55,7 +55,6 @@ class WordMatcher:
                     self.llm_client = pipeline(
                         "text-generation", 
                         model=HUGGINGFACE_MODEL,
-                        device=device,
                         torch_dtype=torch_dtype,
                         model_kwargs={
                             "torch_dtype": torch_dtype,
