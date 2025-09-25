@@ -57,7 +57,11 @@ class WordMatcher:
                         model=HUGGINGFACE_MODEL,
                         device=device,
                         torch_dtype=torch_dtype,
-                        model_kwargs={"torch_dtype": torch_dtype}
+                        model_kwargs={
+                            "torch_dtype": torch_dtype,
+                            "low_cpu_mem_usage": True,
+                            "device_map": "auto"
+                        }
                     )
                     logger.info(f"HuggingFace LLM client initialized (local model on {device})")
                 except Exception as hf_error:
