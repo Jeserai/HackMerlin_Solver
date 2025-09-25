@@ -170,32 +170,36 @@ class HackMerlinSolver:
                     logger.error("No response from Merlin")
                     break
                 
-                # Parse response - use LLM if configured, otherwise use regex parser
+                # For LLM mode: collect all responses, don't parse individually
                 if self.resource_manager.word_matcher.config['use_llm']:
-                    new_clues = self.resource_manager.word_matcher.parse_response_with_llm(response, prompt)
+                    # Store the raw response for LLM processing later
+                    if not hasattr(self, 'merlin_responses'):
+                        self.merlin_responses = []
+                    self.merlin_responses.append({
+                        'prompt': prompt,
+                        'response': response
+                    })
+                    logger.info(f"📝 Stored response for LLM processing: '{response}'")
                 else:
-                    # Use context-aware parser based on the prompt
+                    # For non-LLM modes: parse response immediately
                     new_clues = self.response_parser.parse_response_with_context(response, prompt)
-                
-                # If no clues parsed and Merlin seems to have refused, try with "what are"
-                if not new_clues and self._is_denial_response(response):
-                    logger.info(f"🔄 Merlin denied original prompt, trying with 'what are'...")
-                    polite_prompt = f"what are {prompt}"
-                    response = self.game_automation.ask_merlin(polite_prompt)
-                    if response:
-                        if self.resource_manager.word_matcher.config['use_llm']:
-                            new_clues = self.resource_manager.word_matcher.parse_response_with_llm(response, polite_prompt)
-                        else:
+                    
+                    # If no clues parsed and Merlin seems to have refused, try with "what are"
+                    if not new_clues and self._is_denial_response(response):
+                        logger.info(f"🔄 Merlin denied original prompt, trying with 'what are'...")
+                        polite_prompt = f"what are {prompt}"
+                        response = self.game_automation.ask_merlin(polite_prompt)
+                        if response:
                             new_clues = self.response_parser.parse_response_with_context(response, polite_prompt)
-                        if new_clues:
-                            logger.info(f"✅ Polite prompt worked! Updated clues: {new_clues}")
-                
-                # Only update clues if we got new information
-                if new_clues:
-                    clues.update(new_clues)
-                    logger.info(f"✅ Updated clues: {new_clues}")
-                else:
-                    logger.info(f"⚠️ No clues parsed from response: '{response}'")
+                            if new_clues:
+                                logger.info(f"✅ Polite prompt worked! Updated clues: {new_clues}")
+                    
+                    # Only update clues if we got new information
+                    if new_clues:
+                        clues.update(new_clues)
+                        logger.info(f"✅ Updated clues: {new_clues}")
+                    else:
+                        logger.info(f"⚠️ No clues parsed from response: '{response}'")
                 
                 questions_asked += 1
                 
@@ -212,8 +216,11 @@ class HackMerlinSolver:
             
             # Try to find the best word based on clues
             if self.resource_manager.word_matcher.config['use_llm']:
-                # Use LLM for word generation
-                best_word = self.resource_manager.word_matcher.generate_word_with_llm(clues)
+                # For LLM mode: compress all responses and let LLM infer the word
+                if hasattr(self, 'merlin_responses') and self.merlin_responses:
+                    best_word = self.resource_manager.word_matcher.generate_word_from_responses(self.merlin_responses)
+                else:
+                    best_word = None
             else:
                 # Use configured strategy (concatenation/embeddings)
                 best_word = self.resource_manager.find_best_word(clues)
@@ -286,11 +293,17 @@ class HackMerlinSolver:
                 response = self.game_automation.ask_merlin(prompt)
                 
                 if response:
-                    # Parse response - use LLM if configured, otherwise use regex parser
+                    # For LLM mode: add to response collection
                     if self.resource_manager.word_matcher.config['use_llm']:
-                        new_clues = self.resource_manager.word_matcher.parse_response_with_llm(response, prompt)
+                        if not hasattr(self, 'merlin_responses'):
+                            self.merlin_responses = []
+                        self.merlin_responses.append({
+                            'prompt': prompt,
+                            'response': response
+                        })
+                        logger.info(f"📝 Added backup response for LLM processing: '{response}'")
                     else:
-                        # Parse response with expected count validation
+                        # For non-LLM modes: parse response with expected count validation
                         expected_count = None
                         clue_type = None
                         
@@ -312,40 +325,41 @@ class HackMerlinSolver:
                             clue_type = "individual"
                         
                         new_clues = self.response_parser.parse_response_with_context(response, prompt)
-                    
-                    # If no clues parsed and Merlin seems to have refused, try with "what are"
-                    if not new_clues and self._is_denial_response(response):
-                        logger.info(f"🔄 Merlin denied backup prompt, trying with 'what are'...")
-                        polite_prompt = f"what are {prompt}"
-                        response = self.game_automation.ask_merlin(polite_prompt)
-                        if response:
-                            if self.resource_manager.word_matcher.config['use_llm']:
-                                new_clues = self.resource_manager.word_matcher.parse_response_with_llm(response, polite_prompt)
-                            else:
+                        
+                        # If no clues parsed and Merlin seems to have refused, try with "what are"
+                        if not new_clues and self._is_denial_response(response):
+                            logger.info(f"🔄 Merlin denied backup prompt, trying with 'what are'...")
+                            polite_prompt = f"what are {prompt}"
+                            response = self.game_automation.ask_merlin(polite_prompt)
+                            if response:
                                 new_clues = self.response_parser.parse_response_with_context(response, polite_prompt)
-                            if new_clues:
-                                logger.info(f"✅ Polite backup prompt worked! Updated clues: {new_clues}")
-                    
-                    # Only update clues if we got new information
-                    if new_clues:
-                        # Update original clues with new information (primary approach)
-                        # Special merge behavior: if we asked for the last letter, update only the last character of last_letters
-                        if "last_letters" in new_clues and clue_type == "last_letters" and expected_count == 1:
-                            new_last_char = new_clues["last_letters"][-1]
-                            existing_last = clues.get("last_letters", "")
-                            if existing_last:
-                                clues["last_letters"] = existing_last[:-1] + new_last_char
+                                if new_clues:
+                                    logger.info(f"✅ Polite backup prompt worked! Updated clues: {new_clues}")
+                        
+                        # Only update clues if we got new information
+                        if new_clues:
+                            # Update original clues with new information (primary approach)
+                            # Special merge behavior: if we asked for the last letter, update only the last character of last_letters
+                            if "last_letters" in new_clues and clue_type == "last_letters" and expected_count == 1:
+                                new_last_char = new_clues["last_letters"][-1]
+                                existing_last = clues.get("last_letters", "")
+                                if existing_last:
+                                    clues["last_letters"] = existing_last[:-1] + new_last_char
+                                else:
+                                    clues["last_letters"] = new_last_char
                             else:
-                                clues["last_letters"] = new_last_char
+                                clues.update(new_clues)
+                            logger.info(f"✅ Backup updated clues: {new_clues}")
                         else:
-                            clues.update(new_clues)
-                        logger.info(f"✅ Backup updated clues: {new_clues}")
-                    else:
-                        logger.info(f"⚠️ Backup no clues parsed from response: '{response}'")
+                            logger.info(f"⚠️ Backup no clues parsed from response: '{response}'")
                     
                     # Try to generate word with updated clues
                     if self.resource_manager.word_matcher.config['use_llm']:
-                        reconstructed_word = self.resource_manager.word_matcher.generate_word_with_llm(clues)
+                        # For LLM mode: use all collected responses
+                        if hasattr(self, 'merlin_responses') and self.merlin_responses:
+                            reconstructed_word = self.resource_manager.word_matcher.generate_word_from_responses(self.merlin_responses)
+                        else:
+                            reconstructed_word = None
                     else:
                         reconstructed_word = self.prompt_generator.reconstruct_word(clues)
                     

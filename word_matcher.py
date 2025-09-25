@@ -2,7 +2,7 @@
 Word matcher for HackMerlin game - direct concatenation or LLM-based.
 """
 import logging
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 from config import RESOURCE_LEVELS, OPENAI_API_KEY, OPENAI_MODEL, HUGGINGFACE_MODEL
 
 logger = logging.getLogger(__name__)
@@ -151,6 +151,55 @@ Return only the JSON, no other text:
             logger.error(f"Error parsing response with LLM: {e}")
             return {}
     
+    def generate_word_from_responses(self, merlin_responses: List[Dict[str, str]]) -> Optional[str]:
+        """Generate word directly from all Merlin responses using LLM."""
+        try:
+            if not self.llm_client:
+                return None
+            
+            # Compress all responses into a single context
+            context_parts = []
+            for i, resp in enumerate(merlin_responses):
+                context_parts.append(f"Q{i+1}: {resp['prompt']}")
+                context_parts.append(f"A{i+1}: {resp['response']}")
+            
+            context = "\n".join(context_parts)
+            
+            generation_prompt = f"""You are solving a word puzzle game. Based on these questions and answers from Merlin, what is the secret word?
+
+{context}
+
+Rules:
+- The word is a common English word
+- Merlin's answers contain clues about the word's length, letters, or structure
+- Return only the word, nothing else
+- If uncertain, make your best guess based on the clues
+
+Secret word:"""
+            
+            if hasattr(self.llm_client, 'ChatCompletion'):
+                # OpenAI API
+                response_obj = self.llm_client.ChatCompletion.create(
+                    model=OPENAI_MODEL,
+                    messages=[{"role": "user", "content": generation_prompt}],
+                    max_tokens=10,
+                    temperature=0.1
+                )
+                word = response_obj.choices[0].message.content.strip().lower()
+            else:
+                # HuggingFace pipeline
+                response = self.llm_client(generation_prompt, max_new_tokens=10, temperature=0.1, truncation=True)
+                word = response[0]['generated_text'].split()[-1].lower()
+            
+            # Clean up the word
+            import re
+            word = re.sub(r'[^a-zA-Z]', '', word)
+            return word.lower() if word else None
+            
+        except Exception as e:
+            logger.error(f"LLM word generation from responses failed: {e}")
+            return None
+
     def generate_word_with_llm(self, clues: Dict[str, Any]) -> Optional[str]:
         """Generate the best word using LLM based on collected clues."""
         try:
