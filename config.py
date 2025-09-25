@@ -33,7 +33,7 @@ OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
 
 # Model settings
 OPENAI_MODEL = "gpt-3.5-turbo"
-HUGGINGFACE_MODEL = "google/flan-t5-base"  # Instruction-following model
+HUGGINGFACE_MODEL = "Qwen/Qwen2-7B-Instruct"  # Larger Qwen model for better performance
 
 # Automation settings
 USE_SELENIUM = True  # Set to False for manual copy/paste mode

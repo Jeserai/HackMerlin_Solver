@@ -46,8 +46,20 @@ class WordMatcher:
                 # Try HuggingFace local models
                 try:
                     from transformers import pipeline
-                    self.llm_client = pipeline("text-generation", model=HUGGINGFACE_MODEL)
-                    logger.info("HuggingFace LLM client initialized (local model)")
+                    import torch
+                    
+                    # GPU optimization settings
+                    device = "cuda" if torch.cuda.is_available() else "cpu"
+                    torch_dtype = torch.float16 if device == "cuda" else torch.float32
+                    
+                    self.llm_client = pipeline(
+                        "text-generation", 
+                        model=HUGGINGFACE_MODEL,
+                        device=device,
+                        torch_dtype=torch_dtype,
+                        model_kwargs={"torch_dtype": torch_dtype}
+                    )
+                    logger.info(f"HuggingFace LLM client initialized (local model on {device})")
                 except Exception as hf_error:
                     logger.warning(f"HuggingFace model setup failed: {hf_error}")
                     logger.warning("LLM disabled - no OpenAI API key and HuggingFace model unavailable")
@@ -165,11 +177,17 @@ Return only the JSON, no other text:
             
             context = "\n".join(context_parts)
             
-            generation_prompt = f"""Based on these clues, what is the secret word?
+            generation_prompt = f"""You are solving a word puzzle game. Based on these questions and answers from Merlin, what is the secret word?
 
 {context}
 
-The secret word is:"""
+Rules:
+- The word is a common English word
+- Merlin's answers contain clues about the word's length, letters, or structure
+- Return only the word, nothing else
+- If uncertain, make your best guess based on the clues
+
+Secret word:"""
             
             if hasattr(self.llm_client, 'ChatCompletion'):
                 # OpenAI API
