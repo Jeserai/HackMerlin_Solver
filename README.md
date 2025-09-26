@@ -1,116 +1,78 @@
 # HackMerlin Solver
 
-An autonomous agent that can play the HackMerlin AI prompt engineering challenge (https://hackmerlin.io/) with improved letter extraction strategy.
-
-## Game Understanding
-
-HackMerlin is an AI prompt engineering challenge where:
-1. **You ask Merlin (an AI) questions** to get clues about a secret word
-2. **Merlin responds with information** about the word's structure/characteristics  
-3. **You use the clues to guess the word** and advance to the next level
-4. **The challenge is in crafting effective prompts** to extract useful information
-
-## Key Improvements
-
-### 1. **Systematic Letter Extraction**
-- Gets letter count first
-- Extracts first few letters and last few letters
-- **Asks for individual letters at missing positions** (e.g., "What is the 4th letter?")
-- **Reconstructs word by concatenating all letters directly**
-
-### 2. **Resource-Based Strategies**
-- **Low Resources**: Direct letter concatenation (most efficient)
-- **Medium Resources**: Word embeddings for similarity search
-- **High Resources**: LLM prediction (OpenAI GPT or HuggingFace models)
-
-### 3. **Optional Automation**
-- **Selenium Mode**: Full browser automation (default)
-- **Manual Mode**: Copy/paste prompts and responses (set `USE_SELENIUM=false`)
+An autonomous solver for the HackMerlin game, supporting multiple strategies including LLM, embeddings, and rule-based approaches.
 
 ## Installation
 
-1. Install dependencies:
+### Prerequisites
+
+- Python 3.8+
+- Chrome browser (for Playwright automation)
+
+### Install Dependencies
+
 ```bash
 pip install -r requirements.txt
 ```
 
-2. (Optional) Set up API keys:
+### Install Playwright Browsers (for automation mode)
+
 ```bash
-cp env_example.txt .env
-# Edit .env with your API keys for high-resource features
+playwright install
 ```
 
-3. Make sure Chrome is installed (for Selenium mode)
+### Resource Levels
 
-## Usage
+- **Low**: Rule-based concatenation strategy
+- **Medium**: Embeddings-based similarity search
+- **High**: LLM-based inference (requires GPU or OpenAI API key)
 
-### Basic Usage
-```bash
-# Low resources (direct concatenation)
-python hackmerlin_solver.py
+### Modes
 
-# High resources (LLM + embeddings)
-python hackmerlin_solver.py --resource-level high
+- **Manual Mode** (`--playwright no`): Copy-paste interactions with the game
+- **Automation Mode** (`--playwright yes`): Automated browser interaction
 
-# Manual mode (copy/paste)
-# Set USE_SELENIUM=false in config.py
-python hackmerlin_solver.py
+## Project Structure
+
 ```
-
-### Advanced Usage
-```bash
-# Solve specific level with retry logic
-python hackmerlin_solver.py --level 3 --max-retries 5
-
-# Use medium resources (embeddings only)
-python hackmerlin_solver.py --resource-level medium
-
-# Limit questions per level
-python hackmerlin_solver.py --max-questions 3
+HackMerlin_Solver/
+├── src/
+│   └── hackmerlin/
+│       ├── core/           # Core solving logic
+│       │   ├── solver.py   # Main solver class
+│       │   ├── game_automation.py
+│       │   ├── prompt_generator.py
+│       │   ├── response_parser.py
+│       │   └── word_matcher.py
+│       ├── ai/             # AI components
+│       │   └── resource_manager.py
+│       └── utils/          # Utilities
+│           └── config.py
+├── tests/                  # Test modules
+├── scripts/               # Utility scripts
+├── main.py               # Entry point
+└── requirements.txt      # Dependencies
 ```
-
-### Command Line Options
-- `--level`: Solve a specific level only (for testing)
-- `--max-levels`: Maximum number of levels to solve (default: 6)
-- `--max-questions`: Maximum questions to ask Merlin per level (default: 10)
-- `--resource-level`: Choose 'low', 'medium', or 'high' (default: low)
-- `--max-retries`: Maximum retries per level (default: 3)
-
-## Strategy
-
-The solver follows this proven strategy for the first 6 levels:
-
-1. **Ask Systematic Questions**: 
-   - "How many letters?" → Get letter count (n)
-   - "What are the first 3 letters?" → Get first a letters
-   - "What are the last 3 letters?" → Get last b letters
-   - "What is the 4th letter?" → Get individual letters for positions a+1 to n-b-1
-
-2. **Reconstruct Word Directly**: 
-   - **Low Resources**: Concatenate all letters: `first_letters + middle_letters + last_letters`
-   - **Medium Resources**: Use embeddings to find similar words
-   - **High Resources**: Use LLM to predict from clues
-
 
 ## Configuration
 
-Edit `config.py` to customize:
-- Resource levels and strategies
-- Automation settings (Selenium vs manual)
-- API keys for LLM/embeddings
-- Game settings (timeouts, retries)
+Create a `.env` file with your API keys:
 
-## Project Structure
+```bash
+OPENAI_API_KEY=your_openai_api_key_here
 ```
-HackMerlin_Solver/
-├── hackmerlin_solver.py      # Main solver with improved strategy
-├── game_automation.py        # Selenium + manual modes
-├── prompt_generator.py       # Systematic letter extraction
-├── response_parser.py        # Parses individual letter positions
-├── word_matcher.py           # Direct concatenation + LLM/embeddings
-├── resource_manager.py       # Resource level management
-├── config.py                 # Configuration settings
-├── requirements.txt          # Dependencies
-├── env_example.txt           # API key template
-└── README.md                 # This file
+
+## Development
+
+### Run Tests
+
+```bash
+pytest tests/
+```
+
+### Code Formatting
+
+```bash
+black src/
+flake8 src/
 ```
