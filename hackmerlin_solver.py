@@ -111,8 +111,9 @@ class HackMerlinSolver:
             questions_asked = 0
             
             # For the first level, try the simple "what is the password" approach first
+            # (but skip this in LLM mode as it uses systematic approach from start)
             current_level = self.game_automation.get_current_level()
-            if current_level == 0:  # Level 0 is the first level
+            if current_level == 0 and not self.resource_manager.word_matcher.config['use_llm']:  # Level 0 is the first level, but not in LLM mode
                 logger.info("🎯 Level 1: Trying simple 'what is the password' approach")
                 response = self.game_automation.ask_merlin("What is the password?")
                 if response and response.lower() not in ['i cannot tell you', 'cannot say', 'i cannot provide that information']:
@@ -217,9 +218,16 @@ class HackMerlinSolver:
                 
                 questions_asked += 1
                 
-                # Check if we have enough letters to reconstruct the word (same for all modes)
-                if self.prompt_generator.has_sufficient_letters(clues):
-                    break
+                # Check if we have enough information to proceed
+                if self.resource_manager.word_matcher.config['use_llm']:
+                    # In LLM mode, try to generate word after collecting some responses
+                    if questions_asked >= 3 and hasattr(self, 'merlin_responses') and len(self.merlin_responses) >= 2:
+                        logger.info("🤖 LLM mode: Trying to generate word from collected responses...")
+                        break
+                else:
+                    # For non-LLM modes, check if we have enough letters to reconstruct the word
+                    if self.prompt_generator.has_sufficient_letters(clues):
+                        break
                 
                 time.sleep(1)  # Brief pause between questions
             
@@ -371,6 +379,7 @@ class HackMerlinSolver:
                     if self.resource_manager.word_matcher.config['use_llm']:
                         # For LLM mode: use all collected responses
                         if hasattr(self, 'merlin_responses') and self.merlin_responses:
+                            logger.info(f"🤖 LLM backup: Generating word from {len(self.merlin_responses)} responses...")
                             reconstructed_word = self.resource_manager.word_matcher.generate_word_from_responses(self.merlin_responses)
                         else:
                             reconstructed_word = None
