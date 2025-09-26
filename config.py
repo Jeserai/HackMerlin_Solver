@@ -22,7 +22,7 @@ RESOURCE_LEVELS = {
     },
     'high': {
         'use_llm': True,
-        'use_embeddings': True,
+        'use_embeddings': False,
         'use_online_api': True,
         'strategy': 'llm'
     }
@@ -36,7 +36,6 @@ OPENAI_MODEL = "gpt-3.5-turbo"
 HUGGINGFACE_MODEL = "Qwen/Qwen2-7B-Instruct"  # Larger Qwen model for better performance
 
 # Automation settings
-USE_SELENIUM = True  # Set to False for manual copy/paste mode
 HEADLESS_MODE = False  # Set to True to run Chrome in background
 
 # Game settings

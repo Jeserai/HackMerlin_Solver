@@ -18,8 +18,8 @@ logger = logging.getLogger(__name__)
 class HackMerlinSolver:
     """HackMerlin solver with improved letter extraction strategy."""
     
-    def __init__(self, resource_level: str = 'low'):
-        self.game_automation = GameAutomation()
+    def __init__(self, resource_level: str = 'low', use_playwright: bool = False):
+        self.game_automation = GameAutomation(use_playwright=use_playwright)
         self.resource_manager = ResourceManager(resource_level)
         self.prompt_generator = PromptGenerator()
         self.response_parser = ResponseParser()
@@ -534,9 +534,14 @@ def main():
     parser = argparse.ArgumentParser(description='HackMerlin Solver')
     parser.add_argument('--resource-level', choices=['low', 'medium', 'high'], 
                        default='low', help='Resource level for AI capabilities')
+    parser.add_argument('--playwright', choices=['yes', 'no'], 
+                       default='no', help='Use Playwright automation (yes) or manual mode (no)')
     args = parser.parse_args()
     
-    solver = HackMerlinSolver(resource_level=args.resource_level)
+    # Convert playwright argument to boolean
+    use_playwright = args.playwright == 'yes'
+    
+    solver = HackMerlinSolver(resource_level=args.resource_level, use_playwright=use_playwright)
     try:
         solver.run()
     except KeyboardInterrupt:

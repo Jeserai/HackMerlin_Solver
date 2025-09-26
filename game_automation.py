@@ -5,7 +5,7 @@ import time
 import logging
 import json
 from typing import Optional, Dict, Any
-from config import GAME_URL, USE_SELENIUM, HEADLESS_MODE
+from config import GAME_URL, HEADLESS_MODE
 
 logger = logging.getLogger(__name__)
 
@@ -13,9 +13,9 @@ logger = logging.getLogger(__name__)
 class GameAutomation:
     """Game automation - supports both manual and Playwright modes."""
     
-    def __init__(self):
-        self.use_playwright = USE_SELENIUM  # Using same config flag for now
-        self.manual_mode = not USE_SELENIUM
+    def __init__(self, use_playwright: bool = False):
+        self.use_playwright = use_playwright
+        self.manual_mode = not use_playwright
         self.page = None
         self.browser = None
         self.context = None
