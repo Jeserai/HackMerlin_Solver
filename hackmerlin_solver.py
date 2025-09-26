@@ -75,15 +75,22 @@ class HackMerlinSolver:
                     print("🎉 Level completed successfully!")
                     logger.info("🎉 Level completed successfully!")
                     
-                    # Check if browser is still alive
-                    if self.game_automation.use_playwright and self.game_automation.page:
-                        print("🔄 Browser still alive - automatically continuing to next level!")
-                        logger.info("🔄 Browser still alive - automatically continuing to next level!")
-                        continue
+                    # Check if we can continue to next level
+                    if self.game_automation.use_playwright:
+                        # In Playwright mode, check if browser is still alive
+                        if self.game_automation.page:
+                            print("🔄 Browser still alive - automatically continuing to next level!")
+                            logger.info("🔄 Browser still alive - automatically continuing to next level!")
+                            continue
+                        else:
+                            print("💡 Browser closed - cannot continue to next level")
+                            logger.info("💡 Browser closed - cannot continue")
+                            break
                     else:
-                        print("💡 Browser closed - cannot continue to next level")
-                        logger.info("💡 Browser closed - cannot continue")
-                        break
+                        # In manual mode, we can continue to next level
+                        print("🔄 Manual mode - continuing to next level!")
+                        logger.info("🔄 Manual mode - continuing to next level!")
+                        continue
                 else:
                     print("❌ Level failed - automatically retrying...")
                     logger.info("❌ Level failed - automatically retrying...")
