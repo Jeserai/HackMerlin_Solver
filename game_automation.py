@@ -380,8 +380,8 @@ class GameAutomation:
                 logger.error(f"Error getting level: {e}")
                 return self.current_level
         else:
-            # In manual mode, always return 1 (no level detection)
-            return 1
+            # In manual mode, return tracked level or assume starting at 0
+            return self.current_level if hasattr(self, 'current_level') else 0
     
     def close(self) -> None:
         """Close the session."""
