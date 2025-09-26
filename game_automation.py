@@ -217,6 +217,12 @@ class GameAutomation:
         
         success = result in ['y', 'yes', '1', 'true']
         logger.info(f"Word guess {'successful' if success else 'failed'}")
+        
+        # If successful, increment level counter for manual mode
+        if success:
+            self.current_level += 1
+            logger.info(f"🎯 Level advanced to: {self.current_level}")
+        
         return success
     
     def _submit_word_playwright(self, word: str) -> bool:
