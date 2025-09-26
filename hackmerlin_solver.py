@@ -3,7 +3,7 @@ HackMerlin Solver - AI Prompt Engineering Challenge with improved strategy.
 """
 import logging
 import time
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from game_automation import GameAutomation
 from resource_manager import ResourceManager
 from prompt_generator import PromptGenerator
@@ -50,6 +50,25 @@ class HackMerlinSolver:
         ]
         
         return any(phrase in response_lower for phrase in denial_phrases)
+    
+    def _get_next_llm_prompt(self) -> Optional[str]:
+        """Generate next prompt for LLM mode based on what we've already asked."""
+        if not hasattr(self, 'merlin_responses'):
+            self.merlin_responses = []
+        
+        # Check what we've already asked
+        asked_prompts = [resp['prompt'].lower() for resp in self.merlin_responses]
+        
+        # Systematic prompting order
+        if not any('how many letters' in prompt for prompt in asked_prompts):
+            return "How many letters?"
+        elif not any('first' in prompt for prompt in asked_prompts):
+            return "first four letters?"
+        elif not any('last' in prompt for prompt in asked_prompts):
+            return "last three letters?"
+        else:
+            # We have the key responses, no more prompts needed
+            return None
         
     
     def run(self) -> None:
@@ -157,7 +176,12 @@ class HackMerlinSolver:
             # Ask Merlin questions to gather clues systematically
             while questions_asked < self.max_questions_per_level:
                 # Generate next prompt based on current clues
-                prompt = self.prompt_generator.get_next_prompt(clues)
+                if self.resource_manager.word_matcher.config['use_llm']:
+                    # For LLM mode: generate prompt based on what we've already asked
+                    prompt = self._get_next_llm_prompt()
+                else:
+                    # For non-LLM modes: use traditional prompt generation
+                    prompt = self.prompt_generator.get_next_prompt(clues)
                 
                 if prompt is None:
                     # No more prompts needed, we have sufficient information
