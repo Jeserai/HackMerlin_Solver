@@ -111,9 +111,9 @@ class HackMerlinSolver:
             questions_asked = 0
             
             # For the first level, try the simple "what is the password" approach first
-            # (but skip this in LLM mode as it uses systematic approach from start)
+            # (only for Level 1, not for higher levels)
             current_level = self.game_automation.get_current_level()
-            if current_level == 0 and not self.resource_manager.word_matcher.config['use_llm']:  # Level 0 is the first level, but not in LLM mode
+            if current_level == 0:  # Level 0 is the first level only
                 logger.info("🎯 Level 1: Trying simple 'what is the password' approach")
                 response = self.game_automation.ask_merlin("What is the password?")
                 if response and response.lower() not in ['i cannot tell you', 'cannot say', 'i cannot provide that information']:
