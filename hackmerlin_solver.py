@@ -51,24 +51,6 @@ class HackMerlinSolver:
         
         return any(phrase in response_lower for phrase in denial_phrases)
     
-    def _get_next_llm_prompt(self) -> Optional[str]:
-        """Generate next prompt for LLM mode based on what we've already asked."""
-        if not hasattr(self, 'merlin_responses'):
-            self.merlin_responses = []
-        
-        # Check what we've already asked
-        asked_prompts = [resp['prompt'].lower() for resp in self.merlin_responses]
-        
-        # Systematic prompting order
-        if not any('how many letters' in prompt for prompt in asked_prompts):
-            return "How many letters?"
-        elif not any('first' in prompt for prompt in asked_prompts):
-            return "first four letters?"
-        elif not any('last' in prompt for prompt in asked_prompts):
-            return "last three letters?"
-        else:
-            # We have the key responses, no more prompts needed
-            return None
         
     
     def run(self) -> None:
@@ -175,13 +157,8 @@ class HackMerlinSolver:
             
             # Ask Merlin questions to gather clues systematically
             while questions_asked < self.max_questions_per_level:
-                # Generate next prompt based on current clues
-                if self.resource_manager.word_matcher.config['use_llm']:
-                    # For LLM mode: generate prompt based on what we've already asked
-                    prompt = self._get_next_llm_prompt()
-                else:
-                    # For non-LLM modes: use traditional prompt generation
-                    prompt = self.prompt_generator.get_next_prompt(clues)
+                # Generate next prompt based on current clues (same for all modes)
+                prompt = self.prompt_generator.get_next_prompt(clues)
                 
                 if prompt is None:
                     # No more prompts needed, we have sufficient information
@@ -194,7 +171,7 @@ class HackMerlinSolver:
                     logger.error("No response from Merlin")
                     break
                 
-                # For LLM mode: collect all responses, don't parse individually
+                # For LLM mode: collect responses AND parse clues for prompt progression
                 if self.resource_manager.word_matcher.config['use_llm']:
                     # Store the raw response for LLM processing later
                     if not hasattr(self, 'merlin_responses'):
@@ -204,6 +181,12 @@ class HackMerlinSolver:
                         'response': response
                     })
                     logger.info(f"📝 Stored response for LLM processing: '{response}'")
+                    
+                    # Also parse clues for prompt progression (but don't use for word generation)
+                    new_clues = self.response_parser.parse_response_with_context(response, prompt)
+                    if new_clues:
+                        clues.update(new_clues)
+                        logger.info(f"✅ Updated clues for progression: {new_clues}")
                 else:
                     # For non-LLM modes: parse response immediately
                     new_clues = self.response_parser.parse_response_with_context(response, prompt)
@@ -227,22 +210,9 @@ class HackMerlinSolver:
                 
                 questions_asked += 1
                 
-                # Check if we have enough letters to reconstruct the word
-                if self.resource_manager.word_matcher.config['use_llm']:
-                    # For LLM mode: check if we have key responses
-                    if hasattr(self, 'merlin_responses'):
-                        has_letter_count = any('how many letters' in resp['prompt'].lower() for resp in self.merlin_responses)
-                        has_first_letters = any('first' in resp['prompt'].lower() for resp in self.merlin_responses)
-                        has_last_letters = any('last' in resp['prompt'].lower() for resp in self.merlin_responses)
-                        
-                        if has_letter_count and has_first_letters and has_last_letters:
-                            break  # Have all key information
-                        elif len(self.merlin_responses) >= 5:  # Safety limit
-                            break
-                else:
-                    # For non-LLM modes: use traditional clue checking
-                    if self.prompt_generator.has_sufficient_letters(clues):
-                        break
+                # Check if we have enough letters to reconstruct the word (same for all modes)
+                if self.prompt_generator.has_sufficient_letters(clues):
+                    break
                 
                 time.sleep(1)  # Brief pause between questions
             
