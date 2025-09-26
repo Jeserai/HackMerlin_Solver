@@ -204,8 +204,21 @@ class HackMerlinSolver:
                 questions_asked += 1
                 
                 # Check if we have enough letters to reconstruct the word
-                if self.prompt_generator.has_sufficient_letters(clues):
-                    break
+                if self.resource_manager.word_matcher.config['use_llm']:
+                    # For LLM mode: check if we have key responses
+                    if hasattr(self, 'merlin_responses'):
+                        has_letter_count = any('how many letters' in resp['prompt'].lower() for resp in self.merlin_responses)
+                        has_first_letters = any('first' in resp['prompt'].lower() for resp in self.merlin_responses)
+                        has_last_letters = any('last' in resp['prompt'].lower() for resp in self.merlin_responses)
+                        
+                        if has_letter_count and has_first_letters and has_last_letters:
+                            break  # Have all key information
+                        elif len(self.merlin_responses) >= 5:  # Safety limit
+                            break
+                else:
+                    # For non-LLM modes: use traditional clue checking
+                    if self.prompt_generator.has_sufficient_letters(clues):
+                        break
                 
                 time.sleep(1)  # Brief pause between questions
             
