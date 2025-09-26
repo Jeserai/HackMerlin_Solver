@@ -114,7 +114,7 @@ class HackMerlinSolver:
             # (only for Level 1, not for higher levels)
             current_level = self.game_automation.get_current_level()
             if current_level == 0:  # Level 0 is the first level only
-                logger.info("🎯 Level 1: Trying simple 'what is the password' approach")
+                logger.info("🎯 First level: Trying simple 'what is the password' approach")
                 response = self.game_automation.ask_merlin("What is the password?")
                 if response and response.lower() not in ['i cannot tell you', 'cannot say', 'i cannot provide that information']:
                     logger.info(f"🔑 Direct password response: {response}")
