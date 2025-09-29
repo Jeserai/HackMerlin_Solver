@@ -42,6 +42,3 @@ HEADLESS_MODE = False  # Set to True to run Chrome in background
 GAME_URL = "https://hackmerlin.io/"
 MAX_QUESTIONS_PER_LEVEL = 10
 MAX_RETRIES_PER_LEVEL = 10
-
-# Logging
-LOG_LEVEL = "INFO"
