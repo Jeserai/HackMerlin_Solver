@@ -337,12 +337,12 @@ class HackMerlinSolver:
                     if self.resource_manager.word_matcher.config['use_llm']:
                         # For LLM mode: use all collected responses
                         if hasattr(self, 'merlin_responses') and self.merlin_responses:
-                            pass
                             reconstructed_word = self.resource_manager.word_matcher.generate_word_from_responses(self.merlin_responses)
                         else:
                             reconstructed_word = None
                     else:
-                        reconstructed_word = self.prompt_generator.reconstruct_word(clues)
+                        # Use resource manager to find best word with updated clues
+                        reconstructed_word = self.resource_manager.find_best_word(clues)
                     
                     if reconstructed_word and '?' not in reconstructed_word:
                         print(f"\n UPDATED WORD GUESS:")
@@ -367,10 +367,9 @@ class HackMerlinSolver:
                     candidate_clues = clues.copy()
                     candidate_clues['letter_count'] = candidate_length
                     
-                    # Try to reconstruct word with candidate length
-                    reconstructed_word = self.prompt_generator.reconstruct_word(candidate_clues)
-                    if reconstructed_word and '?' not in reconstructed_word:
-                        best_word = self.resource_manager.find_best_word(candidate_clues)
+                    # Try to find best word with candidate length
+                    best_word = self.resource_manager.find_best_word(candidate_clues)
+                    if best_word and '?' not in best_word:
                         
                         print(f"\n CANDIDATE LENGTH {candidate_length} WORD:")
                         print(f"  {best_word}")
@@ -479,8 +478,8 @@ class HackMerlinSolver:
                             # Regular update
                             candidate_clues[key] = value
                     
-                    # Try to reconstruct word with candidate clues
-                    reconstructed_word = self.prompt_generator.reconstruct_word(candidate_clues)
+                    # Try to find best word with candidate clues
+                    reconstructed_word = self.resource_manager.find_best_word(candidate_clues)
                     if reconstructed_word and '?' not in reconstructed_word:
                         print(f"\nCANDIDATE WORD GUESS:")
                         print(f"   {reconstructed_word}")
