@@ -8,7 +8,7 @@ from .game_automation import GameAutomation
 from ..ai.resource_manager import ResourceManager
 from .prompt_generator import PromptGenerator
 from .response_parser import ResponseParser
-from ..utils.config import MAX_QUESTIONS_PER_LEVEL, MAX_RETRIES_PER_LEVEL, RESOURCE_LEVELS, LOG_LEVEL
+from ..utils.config import MAX_QUESTIONS_PER_LEVEL, MAX_RETRIES_PER_LEVEL, RESOURCE_LEVELS
 
 logger = logging.getLogger(__name__)
 
