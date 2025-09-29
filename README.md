@@ -4,11 +4,6 @@ An autonomous solver for the HackMerlin game, supporting multiple strategies inc
 
 ## Installation
 
-### Prerequisites
-
-- Python 3.8+
-- Chrome browser (for Playwright automation)
-
 ### Install Dependencies
 
 ```bash
@@ -48,8 +43,6 @@ HackMerlin_Solver/
 │       │   └── resource_manager.py
 │       └── utils/          # Utilities
 │           └── config.py
-├── tests/                  # Test modules
-├── scripts/               # Utility scripts
 ├── main.py               # Entry point
 └── requirements.txt      # Dependencies
 ```
@@ -62,17 +55,25 @@ Create a `.env` file with your API keys:
 OPENAI_API_KEY=your_openai_api_key_here
 ```
 
-## Development
+## Strategy
 
-### Run Tests
+The HackMerlin Solver uses a multi-layered approach to solve word puzzles:
+
+### 1. **Systematic Information Gathering**
+- **Letter Count**: First asks "How many letters?" to determine word length
+- **First Letters**: Extracts initial letters using "What are the first X letters?"
+- **Last Letters**: Gets final letters with "What are the last X letters?"
+- **Direct Password**: For Level 1, attempts direct "What is the password?" approach
+
+### 2. **Intelligent Word Reconstruction**
+- **Resource-Aware Matching**: Uses different strategies based on available resources:
+  - **Low Resource**: Simple concatenation of known letters
+  - **Medium Resource**: Embeddings-based similarity search for word completion
+  - **High Resource**: LLM-powered inference for complex word reconstruction
+- **Backup Strategies**: When primary approach fails, tries alternative prompts and word combinations
+
+## Usage
 
 ```bash
-pytest tests/
-```
-
-### Code Formatting
-
-```bash
-black src/
-flake8 src/
+python main.py --resource-level YOUR_CHOSEN_RESOURCE_LEVEL --playwright YES/NO
 ```
