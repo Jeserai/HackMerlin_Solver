@@ -1,5 +1,5 @@
 """
-Prompt generator for asking Merlin strategic questions to extract individual letters.
+Prompt generator for asking Merlin questions to extract individual letters.
 """
 import logging
 from typing import List, Dict, Any, Set
@@ -8,14 +8,12 @@ logger = logging.getLogger(__name__)
 
 
 class PromptGenerator:
-    """Generates strategic prompts to ask Merlin for individual letters."""
-    
     def __init__(self):
         self.asked_questions = set()
         self.current_strategy = "initial"
         
     def get_next_prompt(self, clues: Dict[str, Any] = None) -> str:
-        """Get the next strategic prompt to ask Merlin."""
+        """Get the next prompt to ask Merlin."""
         try:
             if not clues:
                 return "How many letters?"
@@ -27,7 +25,6 @@ class PromptGenerator:
             return "How many letters?"
     
     def _get_strategic_prompt(self, clues: Dict[str, Any]) -> str:
-        """Generate strategic prompts to extract all individual letters."""
         letter_count = clues.get('letter_count')
         
         # Step 1: Get letter count
@@ -45,26 +42,24 @@ class PromptGenerator:
             return "last three letters?"
         
         # Step 4: Get individual letters for middle positions
-        # We have first a letters and last b letters, need letters at positions a+1 to n-b-1
+        # We have first a letters and last b letters, need letters at indices a+1 to n-b-1
         a = len(first_letters)
         b = len(last_letters)
         
         if a + b >= letter_count:
-            # We have enough letters, no need to ask for more
             return None
         
-        # Find missing positions
-        missing_positions = []
+        # Find missing indices
+        missing_indices = []
         for i in range(a, letter_count - b):
             if f"letter_{i+1}" not in clues:  # 1-indexed
-                missing_positions.append(i + 1)
+                missing_indices.append(i + 1)
         
-        if missing_positions:
+        if missing_indices:
             # Ask for the first missing letter
             pos = missing_positions[0]
             return f"the {self._ordinal(pos)} letter?"
         
-        # If we have all letters, return None to indicate we're done
         return None
     
     def _ordinal(self, n: int) -> str:
@@ -77,11 +72,11 @@ class PromptGenerator:
     
     def has_sufficient_letters(self, clues: Dict[str, Any]) -> bool:
         """Check if we have enough letters to reconstruct the word."""
-        letter_count = clues.get('letter_count')
+        letter_cnt = clues.get('letter_count')
         first_letters = clues.get('first_letters', '')
         last_letters = clues.get('last_letters', '')
         
-        if not letter_count:
+        if not letter_cnt:
             return False
         
         a = len(first_letters)
@@ -90,18 +85,17 @@ class PromptGenerator:
         # Calculate overlap between first and last letters
         # For a word of length n, if first a letters and last b letters overlap,
         # the overlap is max(0, a + b - n)
-        overlap = max(0, a + b - letter_count)
+        overlap = max(0, a + b - letter_cnt)
         unique_letters = a + b - overlap
         
-        # Check if we have all letters (accounting for overlap)
-        if unique_letters >= letter_count:
+        if unique_letters >= letter_cnt:
             return True
         
-        # Check if we have individual letters for missing positions
-        missing_count = letter_count - unique_letters
+        # Check if we have individual letters for missing indices
+        missing_cnt = letter_cnt - unique_letters
         individual_letters = sum(1 for key in clues.keys() if key.startswith('letter_') and key != 'letter_count')
         
-        return individual_letters >= missing_count
+        return individual_letters >= missing_cnt
     
     def reconstruct_word(self, clues: Dict[str, Any]) -> str:
         """Reconstruct the word with priority ranking: first four = last letter = first three > rest."""
@@ -158,7 +152,7 @@ class PromptGenerator:
         return ''.join(word)
     
     def reset(self) -> None:
-        """Reset the prompt generator for a new level."""
+        """Reset for a new level."""
         self.asked_questions.clear()
         self.current_strategy = "initial"
         pass

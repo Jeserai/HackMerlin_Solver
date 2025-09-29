@@ -20,7 +20,6 @@ class ResourceManager:
         pass
     
     def find_best_word(self, clues: Dict[str, Any]) -> Optional[str]:
-        """Find the best matching word using configured strategy."""
         try:
             return self.word_matcher.find_best_match(clues)
         except Exception as e:
@@ -28,7 +27,6 @@ class ResourceManager:
             return None
     
     def update_resource_level(self, new_level: str) -> None:
-        """Update resource level and recreate word matcher."""
         if new_level not in RESOURCE_LEVELS:
             logger.warning(f"Invalid resource level: {new_level}")
             return
@@ -40,5 +38,4 @@ class ResourceManager:
         pass
     
     def get_config(self) -> Dict[str, Any]:
-        """Get current configuration."""
         return self.config.copy()

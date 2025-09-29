@@ -101,63 +101,6 @@ class WordMatcher:
             word = self._direct_concatenation(clues)
             return self._filter_word(word) if word else None
     
-    def parse_response_with_llm(self, response: str, prompt: str) -> Dict[str, Any]:
-        """Parse Merlin's response using LLM."""
-        try:
-            if not self.llm_client:
-                return {}
-            
-            parsing_prompt = f"""
-You are parsing responses from an AI game assistant called Merlin in a word guessing game.
-
-The user asked: "{prompt}"
-Merlin responded: "{response}"
-
-Extract the relevant information and return ONLY a JSON object with these possible fields:
-- letter_count: number (if asking about word length)
-- first_letters: string (letters only, no special characters)
-- last_letters: string (letters only, no special characters)  
-- letter_X: single letter (where X is position number)
-
-Examples:
-- "Six" → {{"letter_count": 6}}
-- "TROP" → {{"first_letters": "trop"}}
-- "The first four letters are A-U-R-O." → {{"first_letters": "auro"}}
-- "The 4th letter is M." → {{"letter_4": "m"}}
-
-Return only the JSON, no other text:
-"""
-            
-            if hasattr(self.llm_client, 'ChatCompletion'):
-                # OpenAI API
-                response_obj = self.llm_client.ChatCompletion.create(
-                    model=OPENAI_MODEL,
-                    messages=[{"role": "user", "content": parsing_prompt}],
-                    max_tokens=100,
-                    temperature=0.1
-                )
-                result = response_obj.choices[0].message.content.strip()
-            else:
-                # HuggingFace pipeline
-                result = self.llm_client(parsing_prompt, max_new_tokens=100, temperature=0.1, truncation=True)[0]['generated_text']
-                result = result.replace(parsing_prompt, "").strip()
-            
-            # Parse JSON result
-            import json
-            try:
-                return json.loads(result)
-            except:
-                # Fallback: try to extract JSON from response
-                import re
-                json_match = re.search(r'\{.*\}', result)
-                if json_match:
-                    return json.loads(json_match.group())
-                return {}
-                
-        except Exception as e:
-            logger.error(f"Error parsing response with LLM: {e}")
-            return {}
-    
     def generate_word_from_responses(self, merlin_responses: List[Dict[str, str]]) -> Optional[str]:
         """Generate word directly from all Merlin responses using LLM."""
         try:
@@ -207,72 +150,6 @@ Secret word:"""
             logger.error(f"LLM word generation from responses failed: {e}")
             return None
 
-    def generate_word_with_llm(self, clues: Dict[str, Any]) -> Optional[str]:
-        """Generate the best word using LLM based on collected clues."""
-        try:
-            if not self.llm_client:
-                return None
-            
-            # Build clue description
-            clue_desc = []
-            if 'letter_count' in clues:
-                clue_desc.append(f"Word length: {clues['letter_count']} letters")
-            if 'first_letters' in clues:
-                clue_desc.append(f"Starts with: {clues['first_letters']}")
-            if 'last_letters' in clues:
-                clue_desc.append(f"Ends with: {clues['last_letters']}")
-            
-            # Add individual letters
-            for key, value in clues.items():
-                if key.startswith('letter_'):
-                    pos = key.split('_')[1]
-                    clue_desc.append(f"Position {pos}: {value}")
-            
-            clues_text = "\n".join(clue_desc)
-            
-            generation_prompt = f"""
-Given these clues about a secret word, what is the most likely English word?
-
-Clues:
-{clues_text}
-
-Rules:
-- Must be a common English word
-- Match the given constraints as closely as possible
-- Return only the word, nothing else
-- If multiple words are possible, choose the closest to the clues and then the most common one
-
-Word:
-"""
-            
-            if hasattr(self.llm_client, 'ChatCompletion'):
-                # OpenAI API
-                response_obj = self.llm_client.ChatCompletion.create(
-                    model=OPENAI_MODEL,
-                    messages=[{"role": "user", "content": generation_prompt}],
-                    max_tokens=20,
-                    temperature=0.1
-                )
-                result = response_obj.choices[0].message.content.strip()
-            else:
-                # HuggingFace pipeline
-                result = self.llm_client(generation_prompt, max_new_tokens=20, temperature=0.1, truncation=True)[0]['generated_text']
-                result = result.replace(generation_prompt, "").strip()
-            
-            # Clean up result - just the word
-            import re
-            word_match = re.search(r'\b[a-zA-Z]+\b', result)
-            if word_match:
-                word = word_match.group().lower()
-                return self._filter_word(word)
-            
-            word = result.strip().lower()
-            return self._filter_word(word)
-                
-        except Exception as e:
-            logger.error(f"Error generating word with LLM: {e}")
-            return None
-    
     def _direct_concatenation(self, clues: Dict[str, Any]) -> Optional[str]:
         """Direct concatenation of letters - most efficient approach."""
         try:

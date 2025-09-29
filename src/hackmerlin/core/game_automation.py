@@ -20,7 +20,7 @@ class GameAutomation:
         self.browser = None
         self.context = None
         self.level_before_submit = None
-        self.current_level = 0  # Track current level (starts at 0)
+        self.current_level = 0
         
         pass
     
@@ -34,7 +34,6 @@ class GameAutomation:
             
             self.playwright = sync_playwright().start()
             
-            # Launch browser with more stable settings
             self.browser = self.playwright.chromium.launch(
                 headless=HEADLESS_MODE,
                 args=[
@@ -47,7 +46,6 @@ class GameAutomation:
                 ]
             )
             
-            # Create context with more stable settings
             self.context = self.browser.new_context(
                 viewport={'width': 1280, 'height': 720},
                 ignore_https_errors=True
@@ -55,8 +53,6 @@ class GameAutomation:
             
             # Create page
             self.page = self.context.new_page()
-            
-            # Set longer timeouts
             self.page.set_default_timeout(30000)
             self.page.set_default_navigation_timeout(30000)
             
@@ -107,7 +103,6 @@ class GameAutomation:
         print(f"   {prompt}")
         print(f"\nPlease copy this prompt, paste it to Merlin, and wait for response...")
         
-        # Get response from user
         response = input(f"\nMERLIN'S RESPONSE: ").strip()
         
         if not response:
@@ -248,16 +243,12 @@ class GameAutomation:
             self.manual_mode = True
             return self._submit_word_manual(word)
     
-    def check_game_state(self) -> str:
-        """Check current game state."""
-        return "playing"
-    
     def _click_continue_button_if_present(self) -> bool:
         """Click the Continue button if it appears after successful level completion."""
         try:
             pass
             
-            # Wait a bit for the Continue button to appear
+            # Wait a bit for the Continue button or error instruct to appear
             self.page.wait_for_timeout(2000)
             
             # Look for Continue button with exact selectors - MUST contain "Continue" text
@@ -299,15 +290,10 @@ class GameAutomation:
                     pass
                     continue
             
-            # If no Continue button found, check if we're actually on a success page
             try:
                 continue_elements = self.page.locator("//*[contains(text(), 'Continue')]")
-                if continue_elements.count() > 0:
-                    logger.warning(f"🔄 Found {continue_elements.count()} elements with 'Continue' text but couldn't click them")
-                else:
-                    pass
             except Exception as e:
-                logger.warning(f"🔄 Error checking for Continue elements: {e}")
+                logger.warning(f" Error checking for Continue elements: {e}")
             
             return False
             
@@ -319,14 +305,12 @@ class GameAutomation:
         """Get the current level number."""
         if self.use_playwright:
             try:
-                # Use our tracked level counter
-                logger.info(f"📊 Current tracked level: {self.current_level}")
+                logger.info(f" Current tracked level: {self.current_level}")
                 return self.current_level
             except Exception as e:
                 logger.error(f"Error getting level: {e}")
                 return self.current_level
         else:
-            # In manual mode, return tracked level or assume starting at 0
             return self.current_level if hasattr(self, 'current_level') else 0
     
     def close(self) -> None:

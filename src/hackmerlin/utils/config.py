@@ -6,7 +6,6 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# Resource levels
 RESOURCE_LEVELS = {
     'low': {
         'use_llm': False,

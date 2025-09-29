@@ -21,9 +21,9 @@ class ResponseParser:
             response_lower = response.lower()
             
             # Parse letter count
-            letter_count = self._extract_letter_count(response)
-            if letter_count:
-                clues['letter_count'] = letter_count
+            letter_cnt = self._extract_letter_count(response)
+            if letter_cnt:
+                clues['letter_count'] = letter_cnt
             
             # Parse first letters
             first_letters = self._extract_first_letters(response)
