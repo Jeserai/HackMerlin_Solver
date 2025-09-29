@@ -211,9 +211,7 @@ class ResponseParser:
                     letters = letters_group.replace(', and', '').replace(' and ', '')
                     letters = re.sub(r'[^a-zA-Z]', '', letters)
                     
-                    # Only return if we have actual letters
                     if letters:
-                        logger.info(f"📝 Extracted first letters: '{letters}' from response: '{response}'")
                         return letters.lower()
             
             return None
@@ -251,9 +249,7 @@ class ResponseParser:
                     letters = letters_group.replace(', and', '').replace(' and ', '')
                     letters = re.sub(r'[^a-zA-Z]', '', letters)
                     
-                    # Only return if we have actual letters
                     if letters:
-                        logger.info(f"📝 Extracted last letters: '{letters}' from response: '{response}'")
                         return letters.lower()
             
             return None

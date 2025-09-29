@@ -9,7 +9,7 @@ sys.path.append('.')
 
 def test_response_parsing():
     """Test response parsing without browser automation."""
-    print("🧪 Testing Response Parsing...")
+    print("Testing Response Parsing...")
     
     from response_parser import ResponseParser
     parser = ResponseParser()
@@ -24,14 +24,14 @@ def test_response_parsing():
     for prompt, response, expected_key in test_cases:
         clues = parser.parse_response_with_context(response, prompt)
         result = clues.get(expected_key, "NOT_FOUND")
-        status = "✅" if result != "NOT_FOUND" else "❌"
+        status = "PASS" if result != "NOT_FOUND" else "FAIL"
         print(f"  {status} {prompt} -> {result}")
     
     print()
 
 def test_word_matching():
     """Test word matching without LLM."""
-    print("🧪 Testing Word Matching (Low Resource)...")
+    print("Testing Word Matching (Low Resource)...")
     
     from resource_manager import ResourceManager
     rm = ResourceManager(resource_level='low')
@@ -45,15 +45,15 @@ def test_word_matching():
     
     try:
         best_word = rm.find_best_word(clues)
-        print(f"  ✅ Found word: {best_word}")
+        print(f"  PASS Found word: {best_word}")
     except Exception as e:
-        print(f"  ❌ Error: {e}")
+        print(f"  FAIL Error: {e}")
     
     print()
 
 def test_prompt_generation():
     """Test prompt generation logic."""
-    print("🧪 Testing Prompt Generation...")
+    print("Testing Prompt Generation...")
     
     from prompt_generator import PromptGenerator
     generator = PromptGenerator()
@@ -80,7 +80,7 @@ def test_prompt_generation():
 
 def test_denial_detection():
     """Test denial response detection."""
-    print("🧪 Testing Denial Detection...")
+    print("Testing Denial Detection...")
     
     from hackmerlin_solver import HackMerlinSolver
     solver = HackMerlinSolver()
@@ -94,14 +94,14 @@ def test_denial_detection():
     
     for response, expected in test_responses:
         result = solver._is_denial_response(response)
-        status = "✅" if result == expected else "❌"
+        status = "PASS" if result == expected else "FAIL"
         print(f"  {status} '{response}' -> {result}")
     
     print()
 
 def main():
     """Run all component tests."""
-    print("🚀 Testing HackMerlin Solver Components (Server-Safe)")
+    print("Testing HackMerlin Solver Components (Server-Safe)")
     print("=" * 60)
     
     test_response_parsing()
@@ -109,8 +109,8 @@ def main():
     test_prompt_generation()
     test_denial_detection()
     
-    print("🎉 All component tests completed!")
-    print("\n💡 To test with browser automation, run:")
+    print("All component tests completed!")
+    print("\nTo test with browser automation, run:")
     print("   python hackmerlin_solver.py --resource-level low")
 
 if __name__ == "__main__":

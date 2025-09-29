@@ -150,10 +150,7 @@ class PromptGenerator:
                         # Check if this conflicts with high priority clues
                         current_letter = word[pos]
                         if current_letter != '?' and current_letter != letter:
-                            # Log conflict but allow individual letters to override
-                            import logging
-                            logger = logging.getLogger(__name__)
-                            logger.info(f"Individual letter override at position {pos+1}: '{current_letter}' -> '{letter}'")
+                        pass
                         word[pos] = letter
                 except (ValueError, IndexError):
                     continue
@@ -164,4 +161,4 @@ class PromptGenerator:
         """Reset the prompt generator for a new level."""
         self.asked_questions.clear()
         self.current_strategy = "initial"
-        logger.info("Prompt generator reset")
+        pass

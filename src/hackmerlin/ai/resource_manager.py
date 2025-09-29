@@ -17,8 +17,7 @@ class ResourceManager:
         self.config = RESOURCE_LEVELS.get(resource_level, RESOURCE_LEVELS['low'])
         self.word_matcher = WordMatcher(resource_level)
         
-        logger.info(f"Resource manager initialized with {resource_level} level")
-        logger.info(f"Strategy: {self.config['strategy']}")
+        pass
     
     def find_best_word(self, clues: Dict[str, Any]) -> Optional[str]:
         """Find the best matching word using configured strategy."""
@@ -38,8 +37,7 @@ class ResourceManager:
         self.config = RESOURCE_LEVELS[new_level]
         self.word_matcher = WordMatcher(new_level)
         
-        logger.info(f"Resource level updated to: {new_level}")
-        logger.info(f"New strategy: {self.config['strategy']}")
+        pass
     
     def get_config(self) -> Dict[str, Any]:
         """Get current configuration."""

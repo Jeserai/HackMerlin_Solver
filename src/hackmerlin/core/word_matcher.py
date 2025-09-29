@@ -30,8 +30,6 @@ class WordMatcher:
             return word
         # Keep only ASCII alphabetic characters
         filtered = ''.join(c for c in word if c.isascii() and c.isalpha())
-        if filtered != word:
-            logger.info(f"🔧 Filtered word: '{word}' → '{filtered}'")
         return filtered
     
     def _setup_llm(self) -> None:
@@ -41,7 +39,7 @@ class WordMatcher:
                 import openai
                 openai.api_key = OPENAI_API_KEY
                 self.llm_client = openai
-                logger.info("OpenAI LLM client initialized")
+                pass
             else:
                 # Try HuggingFace local models
                 try:
@@ -62,13 +60,10 @@ class WordMatcher:
                             "device_map": "auto"
                         }
                     )
-                    logger.info(f"HuggingFace LLM client initialized (local model on {device})")
+                    pass
                 except Exception as hf_error:
-                    logger.warning(f"HuggingFace model setup failed: {hf_error}")
-                    logger.warning("LLM disabled - no OpenAI API key and HuggingFace model unavailable")
                     self.config['use_llm'] = False
         except Exception as e:
-            logger.warning(f"Failed to setup LLM: {e}")
             self.config['use_llm'] = False
     
     def _setup_embeddings(self) -> None:
@@ -79,9 +74,8 @@ class WordMatcher:
         try:
             import gensim.downloader as api
             self.embeddings_model = api.load("word2vec-google-news-300")
-            logger.info("Word2Vec embeddings model loaded")
+            pass
         except Exception as e:
-            logger.warning(f"Failed to load embeddings model: {e}")
             self.config['use_embeddings'] = False
             self.embeddings_model = None
     
@@ -146,9 +140,7 @@ Return only the JSON, no other text:
             else:
                 # HuggingFace pipeline
                 result = self.llm_client(parsing_prompt, max_new_tokens=100, temperature=0.1, truncation=True)[0]['generated_text']
-                logger.info(f"🔍 Raw LLM output: {repr(result)}")
                 result = result.replace(parsing_prompt, "").strip()
-                logger.info(f"🔍 Cleaned LLM output: {repr(result)}")
             
             # Parse JSON result
             import json
@@ -306,8 +298,7 @@ Word:
                     if word[pos] == '?':
                         word[pos] = letter
                     else:
-                        # Conflict detected - first letter takes priority
-                        logger.info(f"Word matcher conflict at position {pos+1}: first_letters='{word[pos]}' vs last_letters='{letter}' - prioritizing first_letters")
+                        pass
             
             # Fill in individual letters
             for key, letter in clues.items():

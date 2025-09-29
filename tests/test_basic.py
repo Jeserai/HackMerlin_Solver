@@ -38,4 +38,4 @@ if __name__ == "__main__":
     test_imports()
     test_solver_initialization()
     test_game_automation_initialization()
-    print("✅ All basic tests passed!")
+    print("All basic tests passed!")
