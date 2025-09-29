@@ -150,7 +150,7 @@ class PromptGenerator:
                         # Check if this conflicts with high priority clues
                         current_letter = word[pos]
                         if current_letter != '?' and current_letter != letter:
-                        pass
+                            pass
                         word[pos] = letter
                 except (ValueError, IndexError):
                     continue

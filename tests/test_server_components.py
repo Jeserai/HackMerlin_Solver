@@ -5,13 +5,15 @@ Test script for server environments - test components individually
 
 import sys
 import os
-sys.path.append('.')
+
+# Add the src directory to the Python path
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 def test_response_parsing():
     """Test response parsing without browser automation."""
     print("Testing Response Parsing...")
     
-    from response_parser import ResponseParser
+    from hackmerlin.core.response_parser import ResponseParser
     parser = ResponseParser()
     
     test_cases = [
@@ -33,7 +35,7 @@ def test_word_matching():
     """Test word matching without LLM."""
     print("Testing Word Matching (Low Resource)...")
     
-    from resource_manager import ResourceManager
+    from hackmerlin.ai.resource_manager import ResourceManager
     rm = ResourceManager(resource_level='low')
     
     # Test with sample clues
@@ -55,7 +57,7 @@ def test_prompt_generation():
     """Test prompt generation logic."""
     print("Testing Prompt Generation...")
     
-    from prompt_generator import PromptGenerator
+    from hackmerlin.core.prompt_generator import PromptGenerator
     generator = PromptGenerator()
     
     # Test systematic prompting
@@ -82,7 +84,7 @@ def test_denial_detection():
     """Test denial response detection."""
     print("Testing Denial Detection...")
     
-    from hackmerlin_solver import HackMerlinSolver
+    from hackmerlin.core.solver import HackMerlinSolver
     solver = HackMerlinSolver()
     
     test_responses = [
